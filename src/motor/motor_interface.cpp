@@ -66,7 +66,13 @@ bool Motor::SendCommand(const std::string &_command) {
                         "Could not write command: " << _command);
     return false;
   }
-  return static_cast<std::size_t>(n_written) != buffer.size();
+  if (static_cast<std::size_t>(n_written) != buffer.size()) {
+    RCLCPP_ERROR(rclcpp::get_logger("motor_interface"),
+                 "Should write %ul bytes but have written %d", buffer.size(),
+                 n_written);
+    return false;
+  }
+  return true;
 }
 
 std::optional<std::string> Motor::ReadAnswer() {
