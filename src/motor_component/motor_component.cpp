@@ -32,6 +32,7 @@ MotorNode::MotorNode(const rclcpp::NodeOptions &options)
     return;
   }
   InitPublishers();
+  InitTimers();
 
   RCLCPP_INFO_STREAM(get_logger(), "Initialized.");
 }
