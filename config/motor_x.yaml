@@ -1,5 +1,5 @@
 /**:
-  ros_parameters:
+  ros__parameters:
     type: 'mcbl2805'
     device: '/dev/motor_x'
     baud: 19200
