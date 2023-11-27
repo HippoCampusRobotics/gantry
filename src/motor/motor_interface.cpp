@@ -163,20 +163,6 @@ bool Motor::Enable() { return SendCommand(cmd::kEnable); }
 
 bool Motor::Disable() { return SendCommand(cmd::kDisable); }
 
-std::optional<std::string> Motor::GetType() {
-  if (!SendCommand(cmd::kGetType)) {
-    return std::nullopt;
-  }
-  return ReadAnswer();
-}
-
-std::optional<std::string> Motor::GetSerial() {
-  if (!SendCommand(cmd::kGetSerial)) {
-    return std::nullopt;
-  }
-  return ReadAnswer();
-}
-
 std::optional<int> Motor::GetPosition() { return GetInt(cmd::kGetPosition); }
 
 bool Motor::SetAbsolutePositionTarget(int position) {

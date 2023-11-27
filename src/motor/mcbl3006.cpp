@@ -22,6 +22,9 @@ namespace gantry {
 namespace cmd {
 static constexpr char kGetOperatingStatus[] = "OST";
 static constexpr char kGetConfigurationStatus[] = "CST";
+static constexpr char kGetType[] = "GTYP";
+static constexpr char kGetSerial[] = "GSER";
+static constexpr char kGetIOConfig[] = "IOC";
 }  // namespace cmd
 
 std::optional<bool> MCBL3006::IsHoming() {

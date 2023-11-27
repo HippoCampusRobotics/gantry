@@ -27,9 +27,6 @@ namespace gantry {
 namespace cmd {
 static constexpr char kEnable[] = "EN";
 static constexpr char kDisable[] = "DI";
-static constexpr char kGetType[] = "GTYP";
-static constexpr char kGetSerial[] = "GSER";
-static constexpr char kGetIOConfig[] = "IOC";
 
 static constexpr char kMove[] = "M";
 static constexpr char kStartHoming[] = "GOHOSEQ";
@@ -72,8 +69,6 @@ class Motor {
 
   bool Enable();
   bool Disable();
-  std::optional<std::string> GetType();
-  std::optional<std::string> GetSerial();
   /// @brief Current position in motor increments.
   std::optional<int> GetPosition();
   /// @brief Set the absolute position target in motor increments.

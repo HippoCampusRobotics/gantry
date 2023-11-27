@@ -161,12 +161,6 @@ bool MotorNode::InitMotor() {
                  params_.device.c_str());
     return false;
   }
-  auto type = motor_->GetType();
-  if (!type) {
-    RCLCPP_ERROR(get_logger(), "Could not read type from motor.");
-  } else {
-    RCLCPP_ERROR(get_logger(), "Motor type: %s", type->c_str());
-  }
   auto position = motor_->GetPosition();
   if (!position) {
     RCLCPP_FATAL_THROTTLE(
