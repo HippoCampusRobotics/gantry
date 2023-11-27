@@ -66,6 +66,7 @@ class Motor {
     return SendCommand(command + arg);
   }
 
+  std::optional<std::string> ReadLine(int timeout_ms);
   std::optional<std::string> ReadAnswer();
   std::optional<int> GetInt(const std::string &command);
 

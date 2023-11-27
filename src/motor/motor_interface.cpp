@@ -19,6 +19,7 @@
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -29,7 +30,7 @@ Motor::Motor(){};
 bool Motor::InitSerial(std::string _device_name) {
   initialized_ = false;
   device_name_ = _device_name;
-  port_ = open(device_name_.c_str(), O_RDWR, O_NOCTTY);
+  port_ = open(device_name_.c_str(), O_NONBLOCK, O_RDWR, O_NOCTTY);
   if (port_ < 0) {
     RCLCPP_ERROR(rclcpp::get_logger("motor_interface"),
                  "Failed to open serial port '%s'. Exit code: %d",
@@ -76,6 +77,32 @@ bool Motor::SendCommand(const std::string &_command) {
   return true;
 }
 
+std::optional<std::string> Motor::ReadLine(int _timeout_ms) {
+  char buffer[64];
+  int i = 0;
+  const auto start = std::chrono::high_resolution_clock::now();
+  while (i < 63) {
+    int n_bytes = read(port_, buffer + i, 1);
+    i += n_bytes;
+    if (buffer[i - 1] == '\n') {
+      buffer[n_bytes] = 0;
+      return std::string(buffer);
+    }
+    const auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = end - start;
+    int time_elapsed_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+    if (time_elapsed_ms >= _timeout_ms) {
+      return std::nullopt;
+    }
+    std::timespec t;
+    t.tv_sec = 0;
+    t.tv_nsec = 500000;
+    nanosleep(&t, NULL);
+  }
+  return std::nullopt;
+}
+
 std::optional<std::string> Motor::ReadAnswer() {
   char buffer[64];
   int n_bytes = read(port_, buffer, 63);
@@ -109,7 +136,8 @@ std::optional<int> Motor::GetInt(const std::string &command) {
   if (!SendCommand(command)) {
     return std::nullopt;
   }
-  auto answer = ReadAnswer();
+  // auto answer = ReadAnswer();
+  auto answer = ReadLine(50);
   if (!answer) {
     return std::nullopt;
   }
