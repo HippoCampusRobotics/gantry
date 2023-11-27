@@ -30,7 +30,7 @@ Motor::Motor(){};
 bool Motor::InitSerial(std::string _device_name) {
   initialized_ = false;
   device_name_ = _device_name;
-  port_ = open(device_name_.c_str(), O_NONBLOCK | O_RDWR | O_NOCTTY);
+  port_ = open(device_name_.c_str(), O_RDWR | O_NOCTTY);
   if (port_ < 0) {
     RCLCPP_ERROR(rclcpp::get_logger("motor_interface"),
                  "Failed to open serial port '%s'. Exit code: %d",
@@ -49,7 +49,7 @@ bool Motor::InitSerial(std::string _device_name) {
   tty_.c_oflag &= ~(OCRNL | ONLCR);
 
   tty_.c_lflag &= ~(ECHO | ISIG);
-  // tty_.c_lflag |= ICANON;
+  tty_.c_lflag |= ICANON;
 
   if (tcsetattr(port_, TCSANOW, &tty_) != 0) {
     RCLCPP_ERROR_STREAM(rclcpp::get_logger("motor_interface"),
@@ -136,12 +136,17 @@ std::optional<int> Motor::GetInt(const std::string &command) {
   if (!SendCommand(command)) {
     return std::nullopt;
   }
-  // auto answer = ReadAnswer();
-  auto answer = ReadLine(50);
+  auto answer = ReadAnswer();
   if (!answer) {
     return std::nullopt;
   }
-  return std::stoi(*answer);
+  try {
+    return std::stoi(*answer);
+  } catch (const std::invalid_argument &e) {
+    RCLCPP_ERROR(rclcpp::get_logger("motor_interface"),
+                 "Could not parse integer: '%s'", answer->c_str());
+    return std::nullopt;
+  }
 }
 
 bool Motor::Enable() { return SendCommand(cmd::kEnable); }
