@@ -68,7 +68,7 @@ bool Motor::SendCommand(const std::string &_command) {
   }
   if (static_cast<std::size_t>(n_written) != buffer.size()) {
     RCLCPP_ERROR(rclcpp::get_logger("motor_interface"),
-                 "Should write %ul bytes but have written %d", buffer.size(),
+                 "Should write %lu bytes but have written %d", buffer.size(),
                  n_written);
     return false;
   }
