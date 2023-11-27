@@ -48,6 +48,7 @@ bool Motor::InitSerial(std::string _device_name) {
   tty_.c_oflag &= ~(OCRNL | ONLCR);
 
   tty_.c_lflag &= ~(ECHO | ISIG);
+  tty_.c_lflag |= ICANON;
 
   if (tcsetattr(port_, TCSANOW, &tty_) != 0) {
     RCLCPP_ERROR_STREAM(rclcpp::get_logger("motor_interface"),
@@ -88,15 +89,15 @@ std::optional<std::string> Motor::ReadAnswer() {
                        "Received EOF character.");
     return std::nullopt;
   }
+  // read does not zero terminate c string. so we have to do it manually.
+  buffer[n_bytes] = 0;
 
   if (buffer[n_bytes] - 1 != '\n') {
-    RCLCPP_ERROR_STREAM(rclcpp::get_logger("motor_interface"),
-                        "Received data is not terminated with newline.");
+    RCLCPP_ERROR(rclcpp::get_logger("motor_interface"),
+                 "Received data is not terminated with newline: %s", buffer);
     return std::nullopt;
   }
 
-  // read does not zero terminate c string. so we have to do it manually.
-  buffer[n_bytes] = 0;
   std::string answer{buffer};
   while (answer.length() && (answer.back() == '\r' || answer.back() == '\n')) {
     answer.pop_back();
