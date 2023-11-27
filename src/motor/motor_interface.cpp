@@ -18,6 +18,7 @@
 #include "gantry/motor/motor_interface.hpp"
 
 #include <fcntl.h>
+#include <poll.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 
@@ -105,6 +106,15 @@ std::optional<std::string> Motor::ReadLine(int _timeout_ms) {
 
 std::optional<std::string> Motor::ReadAnswer() {
   char buffer[64];
+  struct pollfd pfd;
+  pfd.fd = port_;
+  pfd.events = POLLIN;
+  pfd.revents = 0;
+  int ready = poll(&pfd, 1, 50);
+  if (!(ready > 0)) {
+    RCLCPP_ERROR(rclcpp::get_logger("motor_interface"), "Read timed out.");
+    return std::nullopt;
+  }
   int n_bytes = read(port_, buffer, 63);
   if (n_bytes < 0) {
     RCLCPP_ERROR_STREAM(rclcpp::get_logger("motor_interface"),
