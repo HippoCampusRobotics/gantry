@@ -92,7 +92,7 @@ std::optional<std::string> Motor::ReadAnswer() {
   // read does not zero terminate c string. so we have to do it manually.
   buffer[n_bytes] = 0;
 
-  if (buffer[n_bytes] - 1 != '\n') {
+  if (buffer[n_bytes - 1] != '\n') {
     RCLCPP_ERROR(rclcpp::get_logger("motor_interface"),
                  "Received data is not terminated with newline: %s", buffer);
     return std::nullopt;
