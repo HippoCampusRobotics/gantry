@@ -32,8 +32,8 @@ MotorNode::MotorNode(const rclcpp::NodeOptions &options)
     return;
   }
   InitPublishers();
+  InitSubscriptions();
   InitTimers();
-
   RCLCPP_INFO_STREAM(get_logger(), "Initialized.");
 }
 
@@ -58,15 +58,108 @@ void MotorNode::InitPublishers() {
       create_publisher<hippo_msgs::msg::Float64Stamped>(topic, qos);
 }
 
+void MotorNode::InitSubscriptions() {
+  rclcpp::QoS qos = rclcpp::SensorDataQoS();
+  qos.keep_last(1);
+  std::string topic;
+
+  using namespace gantry_msgs::msg;
+  topic = "~/setpoint/absolute_position";
+  absolute_position_sub_ = create_subscription<MotorPosition>(
+      topic, qos, [this](const MotorPosition::SharedPtr msg) {
+        OnAbsolutePositionSetpoint(msg);
+      });
+
+  topic = "~/setpoint/relative_position";
+  relative_position_sub_ = create_subscription<MotorPosition>(
+      topic, qos, [this](const MotorPosition::SharedPtr msg) {
+        OnRelativePositionSetpoint(msg);
+      });
+
+  topic = "~/setpoint/velocity";
+  velocity_sub_ = create_subscription<MotorVelocity>(
+      topic, qos,
+      [this](const MotorVelocity::SharedPtr msg) { OnVelocitySetpoint(msg); });
+}
+
 void MotorNode::InitTimers() {
   run_timer_ = create_timer(std::chrono::milliseconds(20), [this]() { Run(); });
+}
+
+void MotorNode::SetPositionSetpoint(
+    const gantry_msgs::msg::MotorPosition::SharedPtr _msg, bool relative) {
+  position_setpoint_.updated = true;
+  position_setpoint_.relative = relative;
+  if (_msg->increments != 0) {
+    position_setpoint_.position = _msg->increments;
+  } else {
+    position_setpoint_.position =
+        _msg->position * params_.increments_per_length_unit;
+  }
+}
+
+void MotorNode::OnAbsolutePositionSetpoint(
+    const gantry_msgs::msg::MotorPosition::SharedPtr _msg) {
+  SetPositionSetpoint(_msg, false);
+}
+
+void MotorNode::OnRelativePositionSetpoint(
+    const gantry_msgs::msg::MotorPosition::SharedPtr _msg) {
+  SetPositionSetpoint(_msg, true);
+}
+
+void MotorNode::OnVelocitySetpoint(
+    const gantry_msgs::msg::MotorVelocity::SharedPtr _msg) {
+  velocity_setpoint_.updated = true;
+  if (_msg->rpm != 0) {
+    velocity_setpoint_.velocity = _msg->rpm;
+  } else {
+    velocity_setpoint_.velocity =
+        _msg->velocity * params_.rpm_per_velocity_unit;
+  }
 }
 
 void MotorNode::Run() {
   if (!UpdateMotorData()) {
     ++transmission_errors_;
   }
+  if (is_emergency_stopped) {
+    motor_->SetVelocity(0);
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+                         "Emergency stop active!");
+    return;
+  }
+  if (position_setpoint_.updated) {
+    position_setpoint_.updated = false;
+    transmission_errors_ += static_cast<int>(!MoveToPositionSetpoint());
+  }
+  if (velocity_setpoint_.updated) {
+    velocity_setpoint_.updated = false;
+    transmission_errors_ += static_cast<int>(!MoveWithVelocitySetpoint());
+  }
   PublishTransmissionErrors(transmission_errors_, now());
+}
+
+bool MotorNode::MoveToPositionSetpoint() {
+  bool success;
+  if (position_setpoint_.relative) {
+    success = motor_->SetRelativePositionTarget(position_setpoint_.position);
+  } else {
+    success = motor_->SetAbsolutePositionTarget(position_setpoint_.position);
+  }
+  if (!success) {
+    RCLCPP_ERROR(get_logger(), "Failed to set position setpoint");
+  }
+  return success;
+}
+
+bool MotorNode::MoveWithVelocitySetpoint() {
+  bool success;
+  success = motor_->SetVelocity(velocity_setpoint_.velocity);
+  if (!success) {
+    RCLCPP_ERROR(get_logger(), "Failed to set velocity setpoint");
+  }
+  return success;
 }
 
 bool MotorNode::UpdateMotorData() {
