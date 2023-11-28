@@ -106,6 +106,25 @@ include_directories(
 )
 
 ################################################################################
+# xyz_motors container node
+################################################################################
+set(exec_name xyz_motors)
+add_executable(${exec_name}
+  src/xyz_motors.cpp
+)
+target_link_libraries(${exec_name} motor_component)
+ament_target_dependencies(${exec_name}
+  rclcpp
+)
+install(TARGETS ${exec_name}
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+include_directories(
+  include
+)
+
+################################################################################
 # install shared resources
 ################################################################################
 install(
