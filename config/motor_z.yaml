@@ -1,0 +1,9 @@
+/**:
+  ros__parameters:
+    type: 'mcbl2805'
+    device: '/dev/motor_z'
+    baud: 19200
+    timeout: 0.2
+    increments_per_length_unit: 2043204
+    rpm_per_velocity_unit: 121921
+    nominal_rpm: 7700
