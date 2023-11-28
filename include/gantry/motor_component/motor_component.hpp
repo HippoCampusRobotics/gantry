@@ -35,6 +35,7 @@ class MotorNode : public rclcpp::Node {
     std::string device;
     int baud;
     double timeout;
+    int update_period_ms;
     int increments_per_length_unit;
     int rpm_per_velocity_unit;
     int nominal_rpm;

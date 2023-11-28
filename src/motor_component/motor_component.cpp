@@ -83,7 +83,8 @@ void MotorNode::InitSubscriptions() {
 }
 
 void MotorNode::InitTimers() {
-  run_timer_ = create_timer(std::chrono::milliseconds(20), [this]() { Run(); });
+  run_timer_ = create_timer(std::chrono::milliseconds(params_.update_period_ms),
+                            [this]() { Run(); });
 }
 
 void MotorNode::SetPositionSetpoint(
