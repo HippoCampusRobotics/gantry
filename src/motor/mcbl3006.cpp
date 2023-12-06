@@ -28,43 +28,45 @@ static constexpr char kGetIOConfig[] = "IOC";
 }  // namespace cmd
 
 std::optional<bool> MCBL3006::IsHoming() {
-  auto answer = GetInt(cmd::kGetOperatingStatus);
-  if (!answer) {
-    return std::nullopt;
-  }
-  return static_cast<bool>(*answer & (1 << 0));
+  return static_cast<bool>(operating_status_ & (1 << 0));
 }
 
 std::optional<bool> MCBL3006::GetLowerLimitSwitch() {
-  auto answer = GetInt(cmd::kGetOperatingStatus);
-  if (!answer) {
-    return std::nullopt;
-  }
-  return static_cast<bool>(*answer & (1 << 8));
+  return static_cast<bool>(operating_status_ & (1 << 8));
 }
 
 std::optional<bool> MCBL3006::GetUpperLimitSwitch() {
-  auto answer = GetInt(cmd::kGetOperatingStatus);
-  if (!answer) {
-    return std::nullopt;
-  }
-  return static_cast<bool>(*answer & (1 << 9));
+  return static_cast<bool>(operating_status_ & (1 << 9));
 }
 
 std::optional<bool> MCBL3006::IsEnabled() {
-  auto answer = GetInt(cmd::kGetConfigurationStatus);
-  if (!answer) {
-    return std::nullopt;
-  }
-  return static_cast<bool>(*answer & (1 << 10));
+  return static_cast<bool>(configuration_status_ & (1 << 10));
 }
 
 std::optional<bool> MCBL3006::IsPositionReached() {
-  auto answer = GetInt(cmd::kGetOperatingStatus);
-  if (!answer) {
+  return static_cast<bool>(operating_status_ & (1 << 16));
+}
+
+std::optional<int> MCBL3006::ReadConfigurationStatus() {
+  return GetInt(cmd::kGetConfigurationStatus);
+}
+
+std::optional<int> MCBL3006::ReadOperatingStatus() {
+  return GetInt(cmd::kGetOperatingStatus);
+}
+
+std::optional<MotorStatus> MCBL3006::UpdateStatus() {
+  auto operating_status = ReadOperatingStatus();
+  if (!operating_status) {
     return std::nullopt;
   }
-  return static_cast<bool>(*answer & (1 << 16));
+  auto configuration_status = ReadConfigurationStatus();
+  if (!configuration_status) {
+    return std::nullopt;
+  }
+  operating_status_ = *operating_status;
+  configuration_status_ = *configuration_status;
+  return PopulateMotorStatus();
 }
 
 }  // namespace gantry

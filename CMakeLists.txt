@@ -33,6 +33,7 @@ find_package(rclcpp_components REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(gantry_msgs REQUIRED)
 find_package(hippo_common REQUIRED)
+find_package(path_planning REQUIRED)
 
 ################################################################################
 # gantry_motor library
@@ -79,13 +80,35 @@ ament_target_dependencies(motor_component
 )
 rclcpp_components_register_nodes(motor_component PLUGIN "gantry::MotorNode")
 install(
-  TARGETS ${component_name}
+  TARGETS motor_component
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
 )
 
+################################################################################
+# path_follower component
+################################################################################
+add_library(path_follower_component SHARED
+  src/path_follower_component/path_follower_component.cpp
+  src/path_follower_component/path_follower_component_params.cpp
+)
+ament_target_dependencies(path_follower_component
+  rclcpp
+  rclcpp_components
+  hippo_common
+  gantry_msgs
+  path_planning
+)
+rclcpp_components_register_nodes(path_follower_component PLUGIN "gantry::PathFollowerNode")
+install(
+  TARGETS path_follower_component
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 ################################################################################
 # single_motor node
 ################################################################################

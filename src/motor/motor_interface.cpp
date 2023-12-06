@@ -211,4 +211,45 @@ std::optional<int> Motor::GetDecelerationLimit() {
 
 bool Motor::StartHoming() { return SendCommand(cmd::kStartHoming); }
 
+std::optional<MotorStatus> Motor::PopulateMotorStatus() {
+  MotorStatus motor_status;
+  {
+    auto value = IsPositionReached();
+    if (!value) {
+      return std::nullopt;
+    }
+    motor_status.position_reached = *value;
+  }
+
+  {
+    auto value = IsHoming();
+    if (!value) {
+      return std::nullopt;
+    }
+    motor_status.homing = *value;
+  }
+  {
+    auto value = IsEnabled();
+    if (!value) {
+      return std::nullopt;
+    }
+    motor_status.enabled = *value;
+  }
+  {
+    auto value = GetLowerLimitSwitch();
+    if (!value) {
+      return std::nullopt;
+    }
+    motor_status.limit_switches.lower_pressed = *value;
+  }
+  {
+    auto value = GetUpperLimitSwitch();
+    if (!value) {
+      return std::nullopt;
+    }
+    motor_status.limit_switches.upper_pressed = *value;
+  }
+  return motor_status;
+}
+
 }  // namespace gantry

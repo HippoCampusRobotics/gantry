@@ -22,6 +22,7 @@
   <depend>std_srvs</depend>
   <depend>geometry_msgs</depend>
   <depend>gantry_msgs</depend>
+  <depend>path_planning</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

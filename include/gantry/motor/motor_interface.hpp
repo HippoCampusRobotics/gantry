@@ -22,6 +22,8 @@
 #include <optional>
 #include <string>
 
+#include "motor_status.hpp"
+
 namespace gantry {
 
 namespace cmd {
@@ -91,18 +93,22 @@ class Motor {
   std::optional<int> GetDecelerationLimit();
 
   bool StartHoming();
-  virtual std::optional<bool> IsHoming() = 0;
-  virtual std::optional<bool> GetLowerLimitSwitch() = 0;
-  virtual std::optional<bool> GetUpperLimitSwitch() = 0;
-  virtual std::optional<bool> IsEnabled() = 0;
-  virtual std::optional<bool> IsPositionReached() = 0;
-
+  virtual std::optional<MotorStatus> UpdateStatus() = 0;
   /**
    * Set the the home position so that the current position equals `position`.
    * @param position The position to be set in increments.
    */
   bool SetHome(int position);
 
+ protected:
+  std::optional<MotorStatus> PopulateMotorStatus();
+  virtual std::optional<bool> IsHoming() = 0;
+  virtual std::optional<bool> GetLowerLimitSwitch() = 0;
+  virtual std::optional<bool> GetUpperLimitSwitch() = 0;
+  virtual std::optional<bool> IsEnabled() = 0;
+  virtual std::optional<bool> IsPositionReached() = 0;
+
+ public:
   int port_;
   std::string device_name_;
   struct termios tty_;

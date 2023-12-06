@@ -22,10 +22,20 @@
 namespace gantry {
 class MCBL3006 : public Motor {
  public:
+  std::optional<MotorStatus> UpdateStatus() override;
+
+ protected:
   std::optional<bool> IsHoming() override;
   std::optional<bool> GetLowerLimitSwitch() override;
   std::optional<bool> GetUpperLimitSwitch() override;
   std::optional<bool> IsEnabled() override;
   std::optional<bool> IsPositionReached() override;
+
+ private:
+  std::optional<int> ReadOperatingStatus();
+  std::optional<int> ReadConfigurationStatus();
+
+  int operating_status_;
+  int configuration_status_;
 };
 }  // namespace gantry

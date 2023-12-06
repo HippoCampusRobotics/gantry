@@ -56,6 +56,10 @@ void MotorNode::InitPublishers() {
   topic = "~/transmission_errors";
   transmission_errors_pub_ =
       create_publisher<hippo_msgs::msg::Float64Stamped>(topic, qos);
+
+  topic = "~/motor_status";
+  motor_status_pub_ =
+      create_publisher<gantry_msgs::msg::MotorStatus>(topic, qos);
 }
 
 void MotorNode::InitSubscriptions() {
@@ -170,20 +174,25 @@ bool MotorNode::UpdateMotorData() {
   }
 
   auto position = motor_->GetPosition();
-  auto velocity = motor_->GetVelocity();
-
   if (!position) {
     RCLCPP_ERROR(get_logger(), "Could not read motor position.");
     return false;
   }
   PublishPosition(*position, now());
 
+  auto velocity = motor_->GetVelocity();
   if (!velocity) {
     RCLCPP_ERROR(get_logger(), "Could not read motor velocity");
     return false;
   }
   PublishVelocity(*velocity, now());
 
+  auto status = motor_->UpdateStatus();
+  if (!status) {
+    RCLCPP_ERROR(get_logger(), "Could not update motor status.");
+    return false;
+  }
+  PublishMotorStatus(*status, now());
   return true;
 }
 
@@ -212,6 +221,23 @@ void MotorNode::PublishVelocity(int _velocity, const rclcpp::Time &_now) {
   msg.rpm = _velocity;
   msg.velocity = static_cast<double>(_velocity) / params_.rpm_per_velocity_unit;
   velocity_pub_->publish(msg);
+}
+
+void MotorNode::PublishMotorStatus(const MotorStatus &_status,
+                                   const rclcpp::Time &_now) {
+  if (!motor_status_pub_) {
+    RCLCPP_ERROR(get_logger(),
+                 "Motor status publisher not initialized. Cannot publish.");
+    return;
+  }
+  gantry_msgs::msg::MotorStatus msg;
+  msg.header.stamp = _now;
+  msg.enabled = _status.enabled;
+  msg.homing = _status.homing;
+  msg.position_reached = _status.position_reached;
+  msg.lower_limit_switch_pressed = _status.limit_switches.lower_pressed;
+  msg.upper_limit_switch_pressed = _status.limit_switches.upper_pressed;
+  motor_status_pub_->publish(msg);
 }
 
 void MotorNode::PublishLimitSwitches(bool lower, bool upper,

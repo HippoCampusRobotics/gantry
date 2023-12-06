@@ -22,6 +22,9 @@
 namespace gantry {
 class MCBL2805 : public Motor {
  public:
+  std::optional<MotorStatus> UpdateStatus() override;
+
+ protected:
   std::optional<bool> IsHoming() override;
   std::optional<bool> GetLowerLimitSwitch() override;
   std::optional<bool> GetUpperLimitSwitch() override;
@@ -32,5 +35,7 @@ class MCBL2805 : public Motor {
   inline std::optional<bool> IsBitSet(const std::string &data, std::size_t i);
   std::optional<std::string> ReadStatus();
   std::optional<std::string> ReadActualStatus();
+  std::string status_;
+  std::string actual_status_;
 };
 }  // namespace gantry

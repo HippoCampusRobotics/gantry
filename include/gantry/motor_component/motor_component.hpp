@@ -18,6 +18,7 @@
 #pragma once
 #include <gantry_msgs/msg/motor_limit_switches.hpp>
 #include <gantry_msgs/msg/motor_position.hpp>
+#include <gantry_msgs/msg/motor_status.hpp>
 #include <gantry_msgs/msg/motor_velocity.hpp>
 #include <hippo_msgs/msg/float64_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -62,6 +63,7 @@ class MotorNode : public rclcpp::Node {
   void PublishVelocity(int velocity, const rclcpp::Time &now);
   void PublishLimitSwitches(bool lower, bool upper, const rclcpp::Time &now);
   void PublishTransmissionErrors(int errors, const rclcpp::Time &now);
+  void PublishMotorStatus(const MotorStatus &status, const rclcpp::Time &now);
   bool UpdateMotorData();
   std::unique_ptr<Motor> motor_;
 
@@ -83,6 +85,7 @@ class MotorNode : public rclcpp::Node {
       limit_switches_pub_;
   rclcpp::Publisher<hippo_msgs::msg::Float64Stamped>::SharedPtr
       transmission_errors_pub_;
+  rclcpp::Publisher<gantry_msgs::msg::MotorStatus>::SharedPtr motor_status_pub_;
 
   rclcpp::Subscription<gantry_msgs::msg::MotorPosition>::SharedPtr
       absolute_position_sub_;

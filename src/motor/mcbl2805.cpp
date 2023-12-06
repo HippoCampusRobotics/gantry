@@ -29,44 +29,34 @@ static constexpr char kGetActualStatus[] = "GAST";
 static constexpr std::size_t kStatusSize = 7;
 static constexpr std::size_t kActualStatusSize = 4;
 
-std::optional<bool> MCBL2805::IsHoming() {
-  auto answer = ReadActualStatus();
-  if (!answer) {
+std::optional<MotorStatus> MCBL2805::UpdateStatus() {
+  auto actual_status = ReadActualStatus();
+  auto status = ReadStatus();
+  if (!actual_status) {
     return std::nullopt;
   }
-  return IsBitSet(*answer, 3);
+  if (!status) {
+    return std::nullopt;
+  }
+  actual_status_ = *actual_status;
+  status_ = *status;
+  return PopulateMotorStatus();
 }
 
+std::optional<bool> MCBL2805::IsHoming() { return IsBitSet(actual_status_, 3); }
+
 std::optional<bool> MCBL2805::GetLowerLimitSwitch() {
-  auto answer = ReadStatus();
-  if (!answer) {
-    return std::nullopt;
-  }
-  return IsBitSet(*answer, 6);
+  return IsBitSet(status_, 6);
 }
 
 std::optional<bool> MCBL2805::GetUpperLimitSwitch() {
-  auto answer = ReadActualStatus();
-  if (!answer) {
-    return std::nullopt;
-  }
-  return IsBitSet(*answer, 0);
+  return IsBitSet(actual_status_, 0);
 }
 
-std::optional<bool> MCBL2805::IsEnabled() {
-  auto answer = ReadStatus();
-  if (!answer) {
-    return std::nullopt;
-  }
-  return IsBitSet(*answer, 3);
-}
+std::optional<bool> MCBL2805::IsEnabled() { return IsBitSet(status_, 3); }
 
 std::optional<bool> MCBL2805::IsPositionReached() {
-  auto answer = ReadStatus();
-  if (!answer) {
-    return std::nullopt;
-  }
-  return IsBitSet(*answer, 4);
+  return IsBitSet(status_, 4);
 }
 
 std::optional<bool> MCBL2805::IsBitSet(const std::string &data, std::size_t i) {
