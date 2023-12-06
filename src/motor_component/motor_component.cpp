@@ -91,6 +91,74 @@ void MotorNode::InitTimers() {
                             [this]() { Run(); });
 }
 
+void MotorNode::InitServices() {
+  std::string name;
+
+  name = "~/start_homing";
+  start_homing_service_ = create_service<std_srvs::srv::Trigger>(
+      name, [this](const std_srvs::srv::Trigger_Request::SharedPtr request,
+                   std_srvs::srv::Trigger_Response::SharedPtr response) {
+        ServeStartHoming(request, response);
+      });
+
+  name = "~/set_home_position";
+  set_home_position_service_ =
+      create_service<gantry_msgs::srv::SetHomePosition>(
+          name,
+          [this](
+              const gantry_msgs::srv::SetHomePosition::Request::SharedPtr req,
+              gantry_msgs::srv::SetHomePosition::Response::SharedPtr resp) {
+            ServeSetHomePosition(req, resp);
+          });
+
+  name = "~/enable";
+  enable_service_ = create_service<std_srvs::srv::SetBool>(
+      name, [this](const std_srvs::srv::SetBool::Request::SharedPtr req,
+                   std_srvs::srv::SetBool::Response::SharedPtr resp) {
+        ServeEnable(req, resp);
+      });
+}
+
+void MotorNode::ServeStartHoming(
+    const std_srvs::srv::Trigger_Request::SharedPtr,
+    std_srvs::srv::Trigger_Response::SharedPtr _response) {
+  if (!MotorOkayForService(_response)) {
+    return;
+  }
+  _response->success = motor_->StartHoming();
+  _response->message = "Homing sequence started.";
+}
+
+void MotorNode::ServeSetHomePosition(
+    const gantry_msgs::srv::SetHomePosition::Request::SharedPtr _request,
+    gantry_msgs::srv::SetHomePosition::Response::SharedPtr _response) {
+  if (!MotorOkayForService(_response)) {
+    return;
+  }
+
+  int increments;
+  if (_request->position.increments != 0) {
+    increments = _request->position.increments;
+  } else {
+    increments = static_cast<int>(_request->position.position *
+                                  params_.increments_per_length_unit);
+  }
+  _response->success = motor_->SetHome(increments);
+}
+
+void MotorNode::ServeEnable(
+    const std_srvs::srv::SetBool::Request::SharedPtr _request,
+    std_srvs::srv::SetBool::Response::SharedPtr _response) {
+  if (!MotorOkayForService(_response)) {
+    return;
+  }
+  if (_request->data) {
+    _response->success = motor_->Enable();
+  } else {
+    _response->success = motor_->Disable();
+  }
+}
+
 void MotorNode::SetPositionSetpoint(
     const gantry_msgs::msg::MotorPosition::SharedPtr _msg, bool relative) {
   position_setpoint_.updated = true;

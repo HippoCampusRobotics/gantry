@@ -20,8 +20,11 @@
 #include <gantry_msgs/msg/motor_position.hpp>
 #include <gantry_msgs/msg/motor_status.hpp>
 #include <gantry_msgs/msg/motor_velocity.hpp>
+#include <gantry_msgs/srv/set_home_position.hpp>
 #include <hippo_msgs/msg/float64_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <std_srvs/srv/set_bool.hpp>
+#include <std_srvs/srv/trigger.hpp>
 
 #include "gantry/motor/motor_interface.hpp"
 
@@ -58,6 +61,7 @@ class MotorNode : public rclcpp::Node {
   void InitPublishers();
   void InitSubscriptions();
   void InitTimers();
+  void InitServices();
   void Run();
   void PublishPosition(int position, const rclcpp::Time &now);
   void PublishVelocity(int velocity, const rclcpp::Time &now);
@@ -76,6 +80,17 @@ class MotorNode : public rclcpp::Node {
   void SetPositionSetpoint(const gantry_msgs::msg::MotorPosition::SharedPtr msg,
                            bool relative);
 
+  void ServeStartHoming(
+      [[maybe_unused]] const std_srvs::srv::Trigger_Request::SharedPtr,
+      std_srvs::srv::Trigger_Response::SharedPtr);
+
+  void ServeSetHomePosition(
+      const gantry_msgs::srv::SetHomePosition::Request::SharedPtr,
+      gantry_msgs::srv::SetHomePosition::Response::SharedPtr);
+
+  void ServeEnable(const std_srvs::srv::SetBool::Request::SharedPtr,
+                   std_srvs::srv::SetBool::Response::SharedPtr);
+
   bool MoveToPositionSetpoint();
   bool MoveWithVelocitySetpoint();
 
@@ -93,6 +108,26 @@ class MotorNode : public rclcpp::Node {
       relative_position_sub_;
   rclcpp::Subscription<gantry_msgs::msg::MotorVelocity>::SharedPtr
       velocity_sub_;
+
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_homing_service_;
+  rclcpp::Service<gantry_msgs::srv::SetHomePosition>::SharedPtr
+      set_home_position_service_;
+  rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enable_service_;
+
+  template <typename T>
+  bool MotorOkayForService(std::shared_ptr<T> response) {
+    if (!motor_) {
+      response->success = false;
+      response->message = "Motor object not created!";
+      return false;
+    }
+    if (!motor_->initialized_) {
+      response->success = true;
+      response->message = "Motor not initialized.";
+      return false;
+    }
+    return true;
+  }
 
   rclcpp::TimerBase::SharedPtr run_timer_;
   int transmission_errors_;

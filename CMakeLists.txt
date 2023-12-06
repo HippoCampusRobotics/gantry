@@ -77,6 +77,7 @@ ament_target_dependencies(motor_component
   rclcpp_components
   hippo_common
   gantry_msgs
+  std_srvs
 )
 rclcpp_components_register_nodes(motor_component PLUGIN "gantry::MotorNode")
 install(

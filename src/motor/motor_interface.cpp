@@ -159,6 +159,10 @@ std::optional<int> Motor::GetInt(const std::string &command) {
   }
 }
 
+bool Motor::SetHome(int position) {
+  return SendCommand(cmd::kSetHome, position);
+}
+
 bool Motor::Enable() { return SendCommand(cmd::kEnable); }
 
 bool Motor::Disable() { return SendCommand(cmd::kDisable); }
