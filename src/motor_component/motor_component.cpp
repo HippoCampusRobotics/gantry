@@ -223,8 +223,13 @@ bool MotorNode::MoveToPositionSetpoint() {
   }
   if (!success) {
     RCLCPP_ERROR(get_logger(), "Failed to set position setpoint");
+    return false;
   }
-  return success;
+  if (!motor_->MoveToCurrentTargetPosition()) {
+    RCLCPP_ERROR(get_logger(), "Failed to move to target position.");
+    return false;
+  }
+  return true;
 }
 
 bool MotorNode::MoveWithVelocitySetpoint() {
