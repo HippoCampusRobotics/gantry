@@ -123,6 +123,7 @@ void MotorNode::InitServices() {
 void MotorNode::ServeStartHoming(
     const std_srvs::srv::Trigger_Request::SharedPtr,
     std_srvs::srv::Trigger_Response::SharedPtr _response) {
+  std::lock_guard<std::mutex> lock(mutex_);
   if (!MotorOkayForService(_response)) {
     return;
   }
@@ -133,6 +134,7 @@ void MotorNode::ServeStartHoming(
 void MotorNode::ServeSetHomePosition(
     const gantry_msgs::srv::SetHomePosition::Request::SharedPtr _request,
     gantry_msgs::srv::SetHomePosition::Response::SharedPtr _response) {
+  std::lock_guard<std::mutex> lock(mutex_);
   if (!MotorOkayForService(_response)) {
     return;
   }
@@ -150,6 +152,7 @@ void MotorNode::ServeSetHomePosition(
 void MotorNode::ServeEnable(
     const std_srvs::srv::SetBool::Request::SharedPtr _request,
     std_srvs::srv::SetBool::Response::SharedPtr _response) {
+  std::lock_guard<std::mutex> lock(mutex_);
   if (!MotorOkayForService(_response)) {
     return;
   }
@@ -174,16 +177,19 @@ void MotorNode::SetPositionSetpoint(
 
 void MotorNode::OnAbsolutePositionSetpoint(
     const gantry_msgs::msg::MotorPosition::SharedPtr _msg) {
+  std::lock_guard<std::mutex> lock(mutex_);
   SetPositionSetpoint(_msg, false);
 }
 
 void MotorNode::OnRelativePositionSetpoint(
     const gantry_msgs::msg::MotorPosition::SharedPtr _msg) {
+  std::lock_guard<std::mutex> lock(mutex_);
   SetPositionSetpoint(_msg, true);
 }
 
 void MotorNode::OnVelocitySetpoint(
     const gantry_msgs::msg::MotorVelocity::SharedPtr _msg) {
+  std::lock_guard<std::mutex> lock(mutex_);
   velocity_setpoint_.updated = true;
   if (_msg->rpm != 0) {
     velocity_setpoint_.velocity = _msg->rpm;
@@ -194,6 +200,7 @@ void MotorNode::OnVelocitySetpoint(
 }
 
 void MotorNode::Run() {
+  std::lock_guard<std::mutex> lock(mutex_);
   if (!UpdateMotorData()) {
     ++transmission_errors_;
   }

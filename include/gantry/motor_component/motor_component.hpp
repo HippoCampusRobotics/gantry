@@ -22,6 +22,7 @@
 #include <gantry_msgs/msg/motor_velocity.hpp>
 #include <gantry_msgs/srv/set_home_position.hpp>
 #include <hippo_msgs/msg/float64_stamped.hpp>
+#include <mutex>
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 #include <std_srvs/srv/trigger.hpp>
@@ -70,6 +71,7 @@ class MotorNode : public rclcpp::Node {
   void PublishMotorStatus(const MotorStatus &status, const rclcpp::Time &now);
   bool UpdateMotorData();
   std::unique_ptr<Motor> motor_;
+  std::mutex mutex_;
 
   void OnAbsolutePositionSetpoint(
       const gantry_msgs::msg::MotorPosition::SharedPtr msg);
