@@ -18,32 +18,51 @@
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <rclcpp/experimental/executors/events_executor/events_executor.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <thread>
 
 #include "gantry/motor_component/motor_component.hpp"
+
+std::shared_ptr<std::thread> CreateSpinThread(std::string axis) {
+  return std::make_shared<std::thread>([axis]() {
+    std::string pkg_dir =
+        ament_index_cpp::get_package_share_directory("gantry");
+    std::string config_dir = pkg_dir + "/config";
+    std::string name = "motor_" + axis;
+    std::string config_file = config_dir + "/" + name + ".yaml";
+    std::string name_remap = "__node:=" + name;
+    rclcpp::NodeOptions options;
+    options.use_intra_process_comms(true);
+    options.arguments(
+        {"--ros-args", "--params-file", config_file, "-r", name_remap});
+
+    auto node = std::make_shared<gantry::MotorNode>(options);
+
+    rclcpp::experimental::executors::EventsQueue::UniquePtr events_queue =
+        std::make_unique<rclcpp::experimental::executors::SimpleEventsQueue>();
+    rclcpp::experimental::executors::EventsExecutor exec(
+        std::move(events_queue), true);
+
+    exec.add_node(node->get_node_base_interface());
+    exec.spin();
+    exec.remove_node(node->get_node_base_interface());
+  });
+}
 
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
 
-  rclcpp::experimental::executors::EventsExecutor exec;
-  rclcpp::NodeOptions options;
-  options.use_intra_process_comms(true);
-
-  std::string pkg_dir = ament_index_cpp::get_package_share_directory("gantry");
-  std::string config_dir = pkg_dir + "/config";
   std::array<std::string, 3> axes{{"x", "y", "z"}};
 
+  std::vector<std::shared_ptr<std::thread>> spin_threads;
+
   for (const auto &axis : axes) {
-    std::string name = "motor_" + axis;
-    std::string config_file = config_dir + "/" + name + ".yaml";
-    std::string name_remap = "__node:=" + name;
-    options.arguments(
-        {"--ros-args", "--params-file", config_file, "-r", name_remap});
-    auto motor_node = std::make_shared<gantry::MotorNode>(options);
-    exec.add_node(motor_node);
+    spin_threads.push_back(CreateSpinThread(axis));
+    RCLCPP_INFO(rclcpp::get_logger("xyz_motor"), "Created %s axis motor.",
+                axis.c_str());
   }
-
-  exec.spin();
-
+  for (auto &thread : spin_threads) {
+    thread->join();
+  }
   rclcpp::shutdown();
 
   return 0;

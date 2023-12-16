@@ -23,7 +23,14 @@
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
 
-  rclcpp::experimental::executors::EventsExecutor exec;
+  rclcpp::experimental::executors::EventsQueue::UniquePtr events_queue =
+      std::make_unique<rclcpp::experimental::executors::SimpleEventsQueue>();
+  // the separate thread for the timers are necessary. Otherwise the
+  // timer callbacks get queued up, if the execution of the callbacks
+  // can't keep up. This does not seem to be the case for a separate
+  // timer manager thread.
+  rclcpp::experimental::executors::EventsExecutor exec(std::move(events_queue),
+                                                       true);
   rclcpp::NodeOptions options;
 
   auto motor_node = std::make_shared<gantry::MotorNode>(options);
