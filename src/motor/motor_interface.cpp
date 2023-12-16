@@ -57,6 +57,7 @@ bool Motor::InitSerial(std::string _device_name) {
                         "Could not apply serial port settings!");
     return false;
   }
+  tcflush(port_, TCIOFLUSH);
   initialized_ = true;
   return true;
 }
@@ -64,6 +65,9 @@ bool Motor::InitSerial(std::string _device_name) {
 bool Motor::SendCommand(const std::string &_command) {
   std::string buffer = _command + "\r";
   int n_written = write(port_, buffer.c_str(), buffer.size());
+  // Make sure all data has actually been transmitted. Otherwise data may
+  // queue up if we try to send commands faster than they can be transmitted.
+  tcdrain(port_);
   if (n_written < 0) {
     RCLCPP_ERROR_STREAM(rclcpp::get_logger("motor_interface"),
                         "Could not write command: " << _command);
