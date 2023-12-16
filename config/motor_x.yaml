@@ -4,7 +4,7 @@
     device: '/dev/motor_x'
     baud: 19200
     timeout: 0.2
-    update_perios_ms: 20
+    update_period_ms: 100
     increments_per_length_unit: 591125
     rpm_per_velocity_unit: 35399
     nominal_rpm: 7700

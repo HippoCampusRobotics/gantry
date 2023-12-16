@@ -8,11 +8,11 @@ repos:
     hooks:
       - id: yapf
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.292
+    rev: v0.1.7
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: 'v17.0.2'
+    rev: 'v17.0.6'
     hooks:
       - id: clang-format
