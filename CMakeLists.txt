@@ -34,6 +34,7 @@ find_package(std_srvs REQUIRED)
 find_package(gantry_msgs REQUIRED)
 find_package(hippo_common REQUIRED)
 find_package(path_planning REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 ################################################################################
 # gantry_motor library
@@ -101,6 +102,8 @@ ament_target_dependencies(path_follower_component
   hippo_common
   gantry_msgs
   path_planning
+  std_srvs
+  Eigen3
 )
 rclcpp_components_register_nodes(path_follower_component PLUGIN "gantry::PathFollowerNode")
 install(
@@ -146,6 +149,22 @@ install(TARGETS ${exec_name}
 
 include_directories(
   include
+)
+
+
+################################################################################
+# path_follower node
+################################################################################
+set(exec_name path_follower)
+add_executable(${exec_name}
+  src/path_follower.cpp
+)
+target_link_libraries(${exec_name} path_follower_component)
+ament_target_dependencies(${exec_name}
+  rclcpp
+)
+install(TARGETS ${exec_name}
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 ################################################################################
