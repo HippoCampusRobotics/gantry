@@ -25,6 +25,7 @@
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/trigger.hpp>
+#include <visualization_msgs/msg/marker.hpp>
 
 namespace gantry {
 class PathFollowerNode : public rclcpp::Node {
@@ -56,8 +57,12 @@ class PathFollowerNode : public rclcpp::Node {
   void InitPublishers();
   void InitSubscriptions();
   void InitTimers();
+  void InitServices();
   void PublishVelocitySetpoint(const Eigen::Vector3d &);
   void PublishPositionSetpoint(const Eigen::Vector3d &);
+  void PublishPositionMarker();
+  void PublishVelocityMarker(const Eigen::Vector3d &);
+  void PublishTargetMarker();
   bool IsMotorPositionTimedOut();
   std::string GetWaypointsFilePath();
   void LoadDefaultWaypoints();
@@ -97,5 +102,14 @@ class PathFollowerNode : public rclcpp::Node {
 
   PositionsTimeoutStatus positions_timed_out_;
   PositionTimeouts position_timeouts_;
+
+  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub_;
+
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_service_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stop_service_;
+
+ public:
+  rclcpp::CallbackGroup::SharedPtr timer_cb_group_;
+  rclcpp::CallbackGroup::SharedPtr service_cb_group_;
 };
 }  // namespace gantry

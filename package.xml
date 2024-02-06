@@ -24,6 +24,7 @@
   <depend>gantry_msgs</depend>
   <depend>path_planning</depend>
   <depend>eigen3</depend>
+  <depend>visualization_msgs</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

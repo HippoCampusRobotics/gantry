@@ -34,6 +34,7 @@ find_package(std_srvs REQUIRED)
 find_package(gantry_msgs REQUIRED)
 find_package(hippo_common REQUIRED)
 find_package(path_planning REQUIRED)
+find_package(visualization_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 
 ################################################################################
@@ -104,6 +105,7 @@ ament_target_dependencies(path_follower_component
   path_planning
   std_srvs
   Eigen3
+  visualization_msgs
 )
 rclcpp_components_register_nodes(path_follower_component PLUGIN "gantry::PathFollowerNode")
 install(

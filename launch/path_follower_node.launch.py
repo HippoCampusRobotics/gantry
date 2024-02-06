@@ -22,6 +22,7 @@ def create_path_follower_node():
         parameters=[
             LaunchConfiguration('path_follower_config_file'),
         ],
+        output='screen',
     )
 
 

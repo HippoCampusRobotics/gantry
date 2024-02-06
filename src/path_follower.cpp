@@ -17,27 +17,28 @@
 
 #include <rclcpp/experimental/executors/events_executor/events_executor.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <thread>
 
 #include "gantry/path_follower_component/path_follower_component.hpp"
 
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
 
-  rclcpp::experimental::executors::EventsQueue::UniquePtr events_queue =
-      std::make_unique<rclcpp::experimental::executors::SimpleEventsQueue>();
-  // the separate thread for the timers are necessary. Otherwise the
-  // timer callbacks get queued up, if the execution of the callbacks
-  // can't keep up. This does not seem to be the case for a separate
-  // timer manager thread.
-  rclcpp::experimental::executors::EventsExecutor exec(std::move(events_queue),
-                                                       true);
+  rclcpp::experimental::executors::EventsExecutor exec;
+  rclcpp::experimental::executors::EventsExecutor timer_exec;
   rclcpp::NodeOptions options;
   options.use_intra_process_comms(true);
 
   auto node = std::make_shared<gantry::PathFollowerNode>(options);
 
   exec.add_node(node);
-  exec.spin();
+  timer_exec.add_callback_group(node->timer_cb_group_,
+                                node->get_node_base_interface());
+  std::thread node_thread([&exec]() { exec.spin(); });
+  std::thread timer_thread([&timer_exec]() { timer_exec.spin(); });
+
+  node_thread.join();
+  timer_thread.join();
 
   rclcpp::shutdown();
 

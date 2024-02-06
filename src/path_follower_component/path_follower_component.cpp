@@ -19,14 +19,22 @@
 
 #include <ament_index_cpp/get_package_prefix.hpp>
 #include <ament_index_cpp/get_package_share_directory.hpp>
+#include <hippo_common/convert.hpp>
+#include <hippo_common/tf2_utils.hpp>
 
 namespace gantry {
 
 PathFollowerNode::PathFollowerNode(const rclcpp::NodeOptions &_options)
     : Node("path_follower", _options) {
   InitParams();
+  service_cb_group_ =
+      create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive, true);
+  timer_cb_group_ = create_callback_group(
+      rclcpp::CallbackGroupType::MutuallyExclusive, false);
   InitPublishers();
+  InitServices();
   InitSubscriptions();
+  LoadDefaultWaypoints();
   InitTimers();
 }
 
@@ -34,8 +42,28 @@ void PathFollowerNode::InitTimers() {
   for (std::size_t i = 0; i < kNumAxes; ++i) {
     positions_timed_out_.at(i) = false;
     position_timeouts_.at(i) = create_timer(
-        std::chrono::milliseconds(200), [this, i]() { OnPositionTimeout(i); });
+        std::chrono::milliseconds(200), [this, i]() { OnPositionTimeout(i); },
+        timer_cb_group_);
   }
+}
+
+void PathFollowerNode::InitServices() {
+  std::string name;
+  using std_srvs::srv::Trigger;
+
+  name = "~/start";
+  start_service_ = create_service<Trigger>(
+      name, [this](const Trigger::Request::SharedPtr request,
+                   Trigger::Response::SharedPtr response) {
+        ServeStart(request, response);
+      });
+
+  name = "~/stop";
+  stop_service_ = create_service<Trigger>(
+      name, [this](const Trigger::Request::SharedPtr request,
+                   Trigger::Response::SharedPtr response) {
+        ServeStop(request, response);
+      });
 }
 
 void PathFollowerNode::InitPublishers() {
@@ -51,6 +79,9 @@ void PathFollowerNode::InitPublishers() {
     topic = "motor_" + axis + "/setpoint/absolute_position";
     position_pubs_.at(i) =
         create_publisher<gantry_msgs::msg::MotorPosition>(topic, qos);
+
+    topic = "~/viz";
+    marker_pub_ = create_publisher<visualization_msgs::msg::Marker>(topic, qos);
   }
 }
 
@@ -63,7 +94,7 @@ void PathFollowerNode::InitSubscriptions() {
     topic = "motor_" + axis + "/position";
     position_subs_.at(i) = create_subscription<gantry_msgs::msg::MotorPosition>(
         topic, qos,
-        [this, &i](const gantry_msgs::msg::MotorPosition::SharedPtr msg) {
+        [this, i](const gantry_msgs::msg::MotorPosition::SharedPtr msg) {
           OnMotorPosition(i, msg);
         });
   }
@@ -112,6 +143,79 @@ void PathFollowerNode::LoadDefaultWaypoints() {
   RCLCPP_INFO(get_logger(), "Loaded default waypoints at [%s]",
               file_path.c_str());
   path_->SetLookAhead(params_.look_ahead_distance);
+}
+
+void PathFollowerNode::PublishPositionMarker() {
+  if (!marker_pub_) {
+    return;
+  }
+  using visualization_msgs::msg::Marker;
+  Marker m;
+  m.header.stamp = now();
+  m.header.frame_id = hippo_common::tf2_utils::frame_id::InertialFrame();
+  m.ns = "gantry_position";
+  m.type = Marker::SPHERE;
+  m.action = Marker::ADD;
+  m.scale.x = 0.1;
+  m.scale.y = 0.1;
+  m.scale.z = 0.1;
+  m.color.a = 1.0;
+  m.color.r = 0.0;
+  m.color.g = 1.0;
+  m.color.b = 0.0;
+  hippo_common::convert::EigenToRos(position_, m.pose.position);
+  marker_pub_->publish(m);
+}
+void PathFollowerNode::PublishTargetMarker() {
+  if (!marker_pub_) {
+    return;
+  }
+  if (!path_) {
+    return;
+  }
+  using visualization_msgs::msg::Marker;
+  Marker m;
+  m.header.stamp = now();
+  m.header.frame_id = hippo_common::tf2_utils::frame_id::InertialFrame();
+  m.ns = "gantry_target";
+  m.type = Marker::SPHERE;
+  m.action = Marker::ADD;
+  m.scale.x = 0.1;
+  m.scale.y = 0.1;
+  m.scale.z = 0.1;
+  m.color.a = 1.0;
+  m.color.r = 0.0;
+  m.color.g = 1.0;
+  m.color.b = 0.0;
+  hippo_common::convert::EigenToRos(path_->TargetPoint(), m.pose.position);
+  marker_pub_->publish(m);
+}
+
+void PathFollowerNode::PublishVelocityMarker(const Eigen::Vector3d &_v) {
+  if (!marker_pub_) {
+    return;
+  }
+  using visualization_msgs::msg::Marker;
+  Marker m;
+  const Eigen::Vector3d tip = position_ + _v.normalized();
+  m.header.stamp = now();
+  m.header.frame_id = hippo_common::tf2_utils::frame_id::InertialFrame();
+  m.ns = "gantry_velocity";
+  m.type = Marker::ARROW;
+  m.action = Marker::ADD;
+  m.scale.x = 0.01;
+  m.scale.y = 0.01;
+  m.scale.z = 0.01;
+  m.color.a = 1.0;
+  m.color.r = 1.0;
+  m.color.g = 1.0;
+  m.color.b = 0.0;
+  geometry_msgs::msg::Point p;
+  hippo_common::convert::EigenToRos(position_, p);
+  m.points.push_back(p);
+  hippo_common::convert::EigenToRos(tip, p);
+  m.points.push_back(p);
+  marker_pub_->publish(m);
 }
 
 void PathFollowerNode::PublishVelocitySetpoint(
@@ -209,6 +313,7 @@ void PathFollowerNode::UpdateControl() {
     PublishVelocitySetpoint(Eigen::Vector3d::Zero());
     return;
   }
+  PublishPositionMarker();
   if (!running_) {
     PublishVelocitySetpoint(Eigen::Vector3d::Zero());
     return;
@@ -225,21 +330,31 @@ void PathFollowerNode::UpdateControl() {
   }
   const Eigen::Vector3d heading =
       (path_->TargetPoint() - position_).normalized();
-  PublishVelocitySetpoint(params_.speed * heading);
+  const Eigen::Vector3d velocity_vector = params_.speed * heading;
+  PublishVelocitySetpoint(velocity_vector);
+  PublishVelocityMarker(velocity_vector);
+  PublishTargetMarker();
 }
 
 void PathFollowerNode::OnMotorPosition(
     std::size_t _index, const gantry_msgs::msg::MotorPosition::SharedPtr _msg) {
   std::lock_guard<decltype(mutex_)> guard(mutex_);
   position_[_index] = _msg->position;
-  position_timeouts_.at(_index)->reset();
+  if (positions_timed_out_.at(_index)) {
+    RCLCPP_INFO(get_logger(),
+                "Received position for %s-axis. Not timed out anymore.",
+                axis_names_.at(_index).c_str());
+  }
   positions_timed_out_.at(_index) = false;
+  position_timeouts_.at(_index)->reset();
+  UpdateControl();
 }
 
 void PathFollowerNode::OnPositionTimeout(std::size_t _index) {
+  std::lock_guard<decltype(mutex_)> guard(mutex_);
   if (!positions_timed_out_.at(_index)) {
     RCLCPP_WARN(get_logger(),
-                "Motor %s position timed out. Waiting for new data.",
+                "Motor position for %s-axis timed out. Waiting for new data.",
                 axis_names_.at(_index).c_str());
   }
   positions_timed_out_.at(_index) = true;
