@@ -190,6 +190,7 @@ void MotorNode::OnRelativePositionSetpoint(
 void MotorNode::OnVelocitySetpoint(
     const gantry_msgs::msg::MotorVelocity::SharedPtr _msg) {
   std::lock_guard<std::mutex> lock(mutex_);
+  velocity_setpoint_.time = now();
   velocity_setpoint_.updated = true;
   if (_msg->rpm != 0) {
     velocity_setpoint_.velocity = _msg->rpm;
