@@ -195,8 +195,7 @@ void MotorNode::OnVelocitySetpoint(
   if (_msg->rpm != 0) {
     velocity_setpoint_.velocity = _msg->rpm;
   } else {
-    velocity_setpoint_.velocity =
-        _msg->velocity * params_.rpm_per_velocity_unit;
+    velocity_setpoint_.velocity = Speed2RPM(_msg->velocity);
   }
 }
 
@@ -314,7 +313,7 @@ void MotorNode::PublishVelocity(int _velocity, const rclcpp::Time &_now) {
   gantry_msgs::msg::MotorVelocity msg;
   msg.header.stamp = _now;
   msg.rpm = _velocity;
-  msg.velocity = static_cast<double>(_velocity) / params_.rpm_per_velocity_unit;
+  msg.velocity = RPM2Speed(_velocity);
   velocity_pub_->publish(msg);
 }
 

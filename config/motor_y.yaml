@@ -5,6 +5,8 @@
     baud: 19200
     timeout: 0.2
     update_period_ms: 100
+    # 3000 increments per rev (see datasheet)
+    increments_per_rev: 3000
     increments_per_length_unit: 645161
-    rpm_per_velocity_unit: 14100
+    # max rpm 3000
     nominal_rpm: 4890

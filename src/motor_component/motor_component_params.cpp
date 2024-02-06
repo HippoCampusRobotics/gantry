@@ -27,7 +27,7 @@ void MotorNode::InitParams() {
   HIPPO_COMMON_DECLARE_PARAM_READONLY(timeout);
   HIPPO_COMMON_DECLARE_PARAM_READONLY(update_period_ms);
   HIPPO_COMMON_DECLARE_PARAM_READONLY(increments_per_length_unit);
-  HIPPO_COMMON_DECLARE_PARAM_READONLY(rpm_per_velocity_unit);
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(increments_per_rev);
   HIPPO_COMMON_DECLARE_PARAM_READONLY(nominal_rpm);
 }
 

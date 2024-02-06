@@ -47,8 +47,8 @@ class MotorNode : public rclcpp::Node {
     int baud;
     double timeout;
     int update_period_ms;
+    int increments_per_rev;
     int increments_per_length_unit;
-    int rpm_per_velocity_unit;
     int nominal_rpm;
   };
   struct PositionSetpoint {
@@ -62,6 +62,18 @@ class MotorNode : public rclcpp::Node {
     int velocity{0};      /// in motor rpm
     rclcpp::Time time;
   };
+
+  double RPM2Speed(int rpm) const {
+    const double rpm_per_speed_unit =
+        params_.increments_per_length_unit * 60.0 / params_.increments_per_rev;
+    return rpm / rpm_per_speed_unit;
+  }
+
+  int Speed2RPM(double speed) const {
+    const double rpm_per_speed_unit =
+        params_.increments_per_length_unit * 60.0 / params_.increments_per_rev;
+    return static_cast<int>(speed * rpm_per_speed_unit);
+  }
 
   void InitParams();
   bool CreateMotor();
