@@ -30,6 +30,12 @@
 #include "gantry/motor/motor_interface.hpp"
 
 namespace gantry {
+namespace mode {
+enum Mode {
+  kPosition = 0,
+  kVelocity = 1,
+};
+}
 class MotorNode : public rclcpp::Node {
  public:
   explicit MotorNode(const rclcpp::NodeOptions &options);
@@ -54,6 +60,7 @@ class MotorNode : public rclcpp::Node {
   struct VelocitySetpoint {
     bool updated{false};  /// to indicate that the setpoint has been updated
     int velocity{0};      /// in motor rpm
+    rclcpp::Time time;
   };
 
   void InitParams();
@@ -138,5 +145,6 @@ class MotorNode : public rclcpp::Node {
   PositionSetpoint position_setpoint_;
   VelocitySetpoint velocity_setpoint_;
   bool is_emergency_stopped{false};
+  mode::Mode mode_{mode::kPosition};
 };
 }  // namespace gantry

@@ -200,6 +200,7 @@ void MotorNode::OnVelocitySetpoint(
 }
 
 void MotorNode::Run() {
+  static bool velocity_timed_out = false;
   std::lock_guard<std::mutex> lock(mutex_);
   if (!UpdateMotorData()) {
     ++transmission_errors_;
@@ -211,11 +212,23 @@ void MotorNode::Run() {
     return;
   }
   if (position_setpoint_.updated) {
+    mode_ = mode::kPosition;
     position_setpoint_.updated = false;
     transmission_errors_ += static_cast<int>(!MoveToPositionSetpoint());
   }
   if (velocity_setpoint_.updated) {
+    velocity_timed_out = false;
+    mode_ = mode::kVelocity;
     velocity_setpoint_.updated = false;
+    transmission_errors_ += static_cast<int>(!MoveWithVelocitySetpoint());
+  }
+  if (mode_ == mode::kVelocity &&
+      (now() - velocity_setpoint_.time).nanoseconds() * 1e-9 >= 0.3) {
+    if (!velocity_timed_out) {
+      RCLCPP_WARN(get_logger(), "Velocity setpoint timed out. Stopping.");
+    }
+    velocity_timed_out = true;
+    velocity_setpoint_.velocity = 0;
     transmission_errors_ += static_cast<int>(!MoveWithVelocitySetpoint());
   }
   PublishTransmissionErrors(transmission_errors_, now());
