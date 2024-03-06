@@ -402,7 +402,7 @@ bool MotorNode::MoveWithVelocitySetpoint() {
 }
 
 bool MotorNode::UpdateMotorData() {
-  static rclcpp::Time t_last;
+  static auto t_last = now();
   static int position_last{0};
   if (!motor_) {
     RCLCPP_FATAL(get_logger(), "Motor has not been created! Cannot run.");
