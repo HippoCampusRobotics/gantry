@@ -20,6 +20,8 @@
 #include <gantry_msgs/msg/motor_position.hpp>
 #include <gantry_msgs/msg/motor_status.hpp>
 #include <gantry_msgs/msg/motor_velocity.hpp>
+#include <gantry_msgs/srv/get_float_drive.hpp>
+#include <gantry_msgs/srv/set_float_drive.hpp>
 #include <gantry_msgs/srv/set_home_position.hpp>
 #include <hippo_msgs/msg/float64_stamped.hpp>
 #include <mutex>
@@ -111,6 +113,24 @@ class MotorNode : public rclcpp::Node {
 
   void ServeEnable(const std_srvs::srv::SetBool::Request::SharedPtr,
                    std_srvs::srv::SetBool::Response::SharedPtr);
+  void ServeGetMaxAccel(
+      const gantry_msgs::srv::GetFloatDrive::Request::SharedPtr,
+      gantry_msgs::srv::GetFloatDrive::Response::SharedPtr);
+  void ServeGetMaxDecel(
+      const gantry_msgs::srv::GetFloatDrive::Request::SharedPtr,
+      gantry_msgs::srv::GetFloatDrive::Response::SharedPtr);
+  void ServeGetMaxSpeed(
+      const gantry_msgs::srv::GetFloatDrive::Request::SharedPtr,
+      gantry_msgs::srv::GetFloatDrive::Response::SharedPtr);
+  void ServeSetMaxAccel(
+      const gantry_msgs::srv::SetFloatDrive::Request::SharedPtr,
+      gantry_msgs::srv::SetFloatDrive::Response::SharedPtr);
+  void ServeSetMaxDecel(
+      const gantry_msgs::srv::SetFloatDrive::Request::SharedPtr,
+      gantry_msgs::srv::SetFloatDrive::Response::SharedPtr);
+  void ServeSetMaxSpeed(
+      const gantry_msgs::srv::SetFloatDrive::Request::SharedPtr,
+      gantry_msgs::srv::SetFloatDrive::Response::SharedPtr);
 
   bool MoveToPositionSetpoint();
   bool MoveWithVelocitySetpoint();
@@ -130,10 +150,19 @@ class MotorNode : public rclcpp::Node {
   rclcpp::Subscription<gantry_msgs::msg::MotorVelocity>::SharedPtr
       velocity_sub_;
 
-  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_homing_service_;
-  rclcpp::Service<gantry_msgs::srv::SetHomePosition>::SharedPtr
-      set_home_position_service_;
-  rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enable_service_;
+  struct Services {
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_homing;
+    rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enable;
+    rclcpp::Service<gantry_msgs::srv::SetHomePosition>::SharedPtr
+        set_home_position;
+    rclcpp::Service<gantry_msgs::srv::GetFloatDrive>::SharedPtr get_max_speed;
+    rclcpp::Service<gantry_msgs::srv::SetFloatDrive>::SharedPtr set_max_speed;
+    rclcpp::Service<gantry_msgs::srv::GetFloatDrive>::SharedPtr get_max_accel;
+    rclcpp::Service<gantry_msgs::srv::SetFloatDrive>::SharedPtr set_max_accel;
+    rclcpp::Service<gantry_msgs::srv::GetFloatDrive>::SharedPtr get_max_decel;
+    rclcpp::Service<gantry_msgs::srv::SetFloatDrive>::SharedPtr set_max_decel;
+  };
+  Services services_;
 
   template <typename T>
   bool MotorOkayForService(std::shared_ptr<T> response) {
