@@ -416,8 +416,6 @@ bool MotorNode::MoveWithVelocitySetpoint() {
 }
 
 bool MotorNode::UpdateMotorData() {
-  static double t_last{0.0};
-  static int position_last{0};
   if (!motor_) {
     RCLCPP_FATAL(get_logger(), "Motor has not been created! Cannot run.");
     return false;
@@ -431,14 +429,14 @@ bool MotorNode::UpdateMotorData() {
   PublishPosition(*position, now());
 
   const double t_now = now().nanoseconds() * 1e-9;
-  const double dt = t_now - t_last;
-  t_last = t_now;
+  const double dt = t_now - t_last_;
+  t_last_ = t_now;
   int velocity = 0;
   if (dt > 0.001) {
-    velocity = static_cast<int>(1.0 * (*position - position_last) /
+    velocity = static_cast<int>(1.0 * (*position - position_last_) /
                                 params_.increments_per_rev / dt * 60.0);
   }
-  position_last = *position;
+  position_last_ = *position;
 
   // auto velocity = motor_->GetVelocity();
   // if (!velocity) {
