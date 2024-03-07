@@ -241,7 +241,7 @@ void MotorNode::ServeGetMaxAccel(
   }
   _response->success = true;
   _response->motorside_value = *v;
-  _response->driveside_value = RPM2Speed(*v);
+  _response->driveside_value = RevsPerSquareSecond2Accel(*v);
 }
 
 void MotorNode::ServeGetMaxDecel(
@@ -258,7 +258,7 @@ void MotorNode::ServeGetMaxDecel(
   }
   _response->success = true;
   _response->motorside_value = *v;
-  _response->driveside_value = RPM2Speed(*v);
+  _response->driveside_value = RevsPerSquareSecond2Accel(*v);
 }
 
 void MotorNode::ServeGetPhysicalRPMLimit(
@@ -296,7 +296,7 @@ void MotorNode::ServeSetMaxAccel(
   if (_request->motorside_value) {
     v = _request->motorside_value;
   } else {
-    v = Speed2RPM(_request->driveside_value);
+    v = Accel2RevsPerSquareSecond(_request->driveside_value);
   }
   _response->success = motor_->SetAccelerationLimit(v);
 }
@@ -312,7 +312,7 @@ void MotorNode::ServeSetMaxDecel(
   if (_request->motorside_value) {
     v = _request->motorside_value;
   } else {
-    v = Speed2RPM(_request->driveside_value);
+    v = Accel2RevsPerSquareSecond(_request->driveside_value);
   }
   _response->success = motor_->SetDecelerationLimit(v);
 }

@@ -82,6 +82,16 @@ class MotorNode : public rclcpp::Node {
     return static_cast<int>(speed * rpm_per_speed_unit);
   }
 
+  double RevsPerSquareSecond2Accel(int revs_per_square_second) const {
+    return 1.0 * revs_per_square_second * params_.increments_per_rev /
+           params_.increments_per_length_unit;
+  }
+
+  int Accel2RevsPerSquareSecond(double accel) const {
+    return static_cast<int>(accel * params_.increments_per_length_unit /
+                            params_.increments_per_rev);
+  }
+
   void InitParams();
   bool CreateMotor();
   bool InitMotor();
