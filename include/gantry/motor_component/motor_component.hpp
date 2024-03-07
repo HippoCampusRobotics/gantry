@@ -51,7 +51,12 @@ class MotorNode : public rclcpp::Node {
     int update_period_ms;
     int increments_per_rev;
     int increments_per_length_unit;
-    int nominal_rpm;
+    int max_rpm;
+    struct Defaults {
+      int max_rpm;
+      int max_accel;
+      int max_decel;
+    } defaults;
   };
   struct PositionSetpoint {
     bool relative{false};  /// flag to indicate absolute and relative positions
@@ -91,6 +96,7 @@ class MotorNode : public rclcpp::Node {
   void PublishTransmissionErrors(int errors, const rclcpp::Time &now);
   void PublishMotorStatus(const MotorStatus &status, const rclcpp::Time &now);
   bool UpdateMotorData();
+  bool SetDefaults();
   std::unique_ptr<Motor> motor_;
   std::mutex mutex_;
 
@@ -120,6 +126,9 @@ class MotorNode : public rclcpp::Node {
       const gantry_msgs::srv::GetFloatDrive::Request::SharedPtr,
       gantry_msgs::srv::GetFloatDrive::Response::SharedPtr);
   void ServeGetMaxSpeed(
+      const gantry_msgs::srv::GetFloatDrive::Request::SharedPtr,
+      gantry_msgs::srv::GetFloatDrive::Response::SharedPtr);
+  void ServeGetPhysicalRPMLimit(
       const gantry_msgs::srv::GetFloatDrive::Request::SharedPtr,
       gantry_msgs::srv::GetFloatDrive::Response::SharedPtr);
   void ServeSetMaxAccel(
@@ -161,6 +170,8 @@ class MotorNode : public rclcpp::Node {
     rclcpp::Service<gantry_msgs::srv::SetFloatDrive>::SharedPtr set_max_accel;
     rclcpp::Service<gantry_msgs::srv::GetFloatDrive>::SharedPtr get_max_decel;
     rclcpp::Service<gantry_msgs::srv::SetFloatDrive>::SharedPtr set_max_decel;
+    rclcpp::Service<gantry_msgs::srv::GetFloatDrive>::SharedPtr
+        get_physical_rpm_limit;
   };
   Services services_;
 

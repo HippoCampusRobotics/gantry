@@ -8,5 +8,8 @@
     # 3000 increments per rev (see datasheet)
     increments_per_rev: 3000
     increments_per_length_unit: 645161
-    # max rpm 3000
-    nominal_rpm: 4890
+    max_rpm: 3000
+    defaults:
+      max_rpm: 3000
+      max_accel: 100
+      max_decel: 100

@@ -28,7 +28,10 @@ void MotorNode::InitParams() {
   HIPPO_COMMON_DECLARE_PARAM_READONLY(update_period_ms);
   HIPPO_COMMON_DECLARE_PARAM_READONLY(increments_per_length_unit);
   HIPPO_COMMON_DECLARE_PARAM_READONLY(increments_per_rev);
-  HIPPO_COMMON_DECLARE_PARAM_READONLY(nominal_rpm);
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(max_rpm);
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(defaults.max_rpm);
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(defaults.max_accel);
+  HIPPO_COMMON_DECLARE_PARAM_READONLY(defaults.max_decel);
 }
 
 }  // namespace gantry

@@ -159,6 +159,12 @@ void MotorNode::InitServices() {
       name, [this](SetFloatRequest req, SetFloatResponse resp) {
         ServeSetMaxDecel(req, resp);
       });
+
+  name = "~/get_physical_speed_limit";
+  services_.get_physical_rpm_limit = create_service<GetFloat>(
+      name, [this](GetFloatRequest req, GetFloatResponse resp) {
+        ServeGetPhysicalRPMLimit(req, resp);
+      });
 }
 
 void MotorNode::ServeStartHoming(
@@ -253,6 +259,14 @@ void MotorNode::ServeGetMaxDecel(
   _response->success = true;
   _response->motorside_value = *v;
   _response->driveside_value = RPM2Speed(*v);
+}
+
+void MotorNode::ServeGetPhysicalRPMLimit(
+    const gantry_msgs::srv::GetFloatDrive::Request::SharedPtr,
+    gantry_msgs::srv::GetFloatDrive::Response::SharedPtr _response) {
+  _response->success = true;
+  _response->motorside_value = params_.max_rpm;
+  _response->driveside_value = RPM2Speed(params_.max_rpm);
 }
 
 void MotorNode::ServeSetMaxSpeed(
@@ -424,6 +438,7 @@ bool MotorNode::UpdateMotorData() {
     velocity = static_cast<int>((*position - position_last) * 60.0 /
                                 params_.increments_per_rev / dt);
   }
+  position_last = *position;
 
   // auto velocity = motor_->GetVelocity();
   // if (!velocity) {
@@ -546,6 +561,16 @@ bool MotorNode::CreateMotor() {
     RCLCPP_FATAL(get_logger(),
                  "Unhandled motor type: <%s>. This node will be inactive!",
                  params_.type.c_str());
+    return false;
+  }
+  return true;
+}
+
+bool MotorNode::SetDefaults() {
+  std::lock_guard<decltype(mutex_)> lock{mutex_};
+  if (!motor_->SetVelocityLimit(params_.defaults.max_rpm) ||
+      !motor_->SetAccelerationLimit(params_.defaults.max_accel) ||
+      !motor_->SetDecelerationLimit(params_.defaults.max_decel)) {
     return false;
   }
   return true;
