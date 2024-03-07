@@ -376,7 +376,7 @@ void MotorNode::Run() {
     velocity_setpoint_.updated = false;
     transmission_errors_ += static_cast<int>(!MoveWithVelocitySetpoint());
   }
-  if (mode_ == mode::kVelocity &&
+  if (mode_ == mode::kVelocity && !motor_status_.homing &&
       (now() - velocity_setpoint_.time).nanoseconds() * 1e-9 >= 0.3) {
     if (!velocity_timed_out) {
       RCLCPP_WARN(get_logger(), "Velocity setpoint timed out. Stopping.");
@@ -450,6 +450,7 @@ bool MotorNode::UpdateMotorData() {
     RCLCPP_ERROR(get_logger(), "Could not update motor status.");
     return false;
   }
+  motor_status_ = *status;
   PublishMotorStatus(*status, now());
   return true;
 }

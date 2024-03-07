@@ -202,6 +202,7 @@ class MotorNode : public rclcpp::Node {
 
   double t_last_{0.0};
   int position_last_{0};
+  MotorStatus motor_status_;
 
   rclcpp::TimerBase::SharedPtr run_timer_;
   int transmission_errors_;
