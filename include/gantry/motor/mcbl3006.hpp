@@ -23,6 +23,8 @@ namespace gantry {
 class MCBL3006 : public Motor {
  public:
   std::optional<MotorStatus> UpdateStatus() override;
+  bool SetDecelerationLimit(int value) override;
+  std::optional<int> GetDecelerationLimit() override;
 
  protected:
   std::optional<bool> IsHoming() override;

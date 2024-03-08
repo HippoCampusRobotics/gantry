@@ -209,14 +209,6 @@ std::optional<int> Motor::GetAccelerationLimit() {
   return GetInt(cmd::kGetAccelLimit);
 }
 
-bool Motor::SetDecelerationLimit(int value) {
-  return SendCommand(cmd::kSetDecelLimit, value);
-}
-
-std::optional<int> Motor::GetDecelerationLimit() {
-  return GetInt(cmd::kGetDecelLimit);
-}
-
 bool Motor::StartHoming() { return SendCommand(cmd::kStartHoming); }
 
 std::optional<MotorStatus> Motor::PopulateMotorStatus() {

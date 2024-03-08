@@ -89,8 +89,8 @@ class Motor {
   std::optional<int> GetVelocityLimit();
   bool SetAccelerationLimit(int value);
   std::optional<int> GetAccelerationLimit();
-  bool SetDecelerationLimit(int value);
-  std::optional<int> GetDecelerationLimit();
+  virtual bool SetDecelerationLimit(int value) = 0;
+  virtual std::optional<int> GetDecelerationLimit() = 0;
 
   bool StartHoming();
   virtual std::optional<MotorStatus> UpdateStatus() = 0;

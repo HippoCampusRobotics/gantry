@@ -31,6 +31,7 @@ MotorNode::MotorNode(const rclcpp::NodeOptions &options)
     RCLCPP_FATAL(get_logger(), "Node will be inactive.");
     return;
   }
+  SetDefaults();
   InitPublishers();
   InitSubscriptions();
   InitServices();
@@ -147,7 +148,7 @@ void MotorNode::InitServices() {
       name, [this](SetFloatRequest req, SetFloatResponse resp) {
         ServeSetMaxAccel(req, resp);
       });
-
+  /*
   name = "~/get_max_decel";
   services_.get_max_decel = create_service<GetFloat>(
       name, [this](GetFloatRequest req, GetFloatResponse resp) {
@@ -159,6 +160,7 @@ void MotorNode::InitServices() {
       name, [this](SetFloatRequest req, SetFloatResponse resp) {
         ServeSetMaxDecel(req, resp);
       });
+  */
 
   name = "~/get_physical_speed_limit";
   services_.get_physical_rpm_limit = create_service<GetFloat>(
@@ -298,7 +300,8 @@ void MotorNode::ServeSetMaxAccel(
   } else {
     v = Accel2RevsPerSquareSecond(_request->driveside_value);
   }
-  _response->success = motor_->SetAccelerationLimit(v);
+  _response->success =
+      motor_->SetAccelerationLimit(v) && motor_->SetDecelerationLimit(v);
 }
 
 void MotorNode::ServeSetMaxDecel(

@@ -27,6 +27,14 @@ static constexpr char kGetSerial[] = "GSER";
 static constexpr char kGetIOConfig[] = "IOC";
 }  // namespace cmd
 
+bool MCBL3006::SetDecelerationLimit(int value) {
+  return SendCommand(cmd::kSetDecelLimit, value);
+}
+
+std::optional<int> MCBL3006::GetDecelerationLimit() {
+  return GetInt(cmd::kGetDecelLimit);
+}
+
 std::optional<bool> MCBL3006::IsHoming() {
   return static_cast<bool>(operating_status_ & (1 << 0));
 }

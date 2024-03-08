@@ -29,6 +29,12 @@ static constexpr char kGetActualStatus[] = "GAST";
 static constexpr std::size_t kStatusSize = 7;
 static constexpr std::size_t kActualStatusSize = 4;
 
+bool MCBL2805::SetDecelerationLimit(int) { return true; }
+
+std::optional<int> MCBL2805::GetDecelerationLimit() {
+  return GetInt(cmd::kGetAccelLimit);
+}
+
 std::optional<MotorStatus> MCBL2805::UpdateStatus() {
   auto actual_status = ReadActualStatus();
   auto status = ReadStatus();
