@@ -170,6 +170,20 @@ install(TARGETS ${exec_name}
 )
 
 ################################################################################
+# install Python Stuff
+################################################################################
+
+# Install Python modules
+ament_python_install_package(${PROJECT_NAME})
+
+# Install Python executables
+install(PROGRAMS
+  nodes/grid_position_control.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+
+################################################################################
 # install shared resources
 ################################################################################
 install(
