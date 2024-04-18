@@ -21,6 +21,27 @@
 #include "gantry/motor/mcbl3006.hpp"
 
 namespace gantry {
+
+using std_srvs::srv::SetBool;
+using SetBoolRequest = const SetBool::Request::SharedPtr;
+using SetBoolResponse = SetBool::Response::SharedPtr;
+
+using GetFloat = gantry_msgs::srv::GetFloatDrive;
+using GetFloatRequest = const GetFloat::Request::SharedPtr;
+using GetFloatResponse = GetFloat::Response::SharedPtr;
+
+using SetFloat = gantry_msgs::srv::SetFloatDrive;
+using SetFloatRequest = const SetFloat::Request::SharedPtr;
+using SetFloatResponse = SetFloat::Response::SharedPtr;
+
+using std_srvs::srv::Trigger;
+using TriggerResponse = Trigger::Response::SharedPtr;
+using TriggerRequest = Trigger::Request::SharedPtr;
+
+using gantry_msgs::srv::SetHomePosition;
+using SetHomePositionRequest = const SetHomePosition::Request::SharedPtr;
+using SetHomePositionResponse = SetHomePosition::Response::SharedPtr;
+
 MotorNode::MotorNode(const rclcpp::NodeOptions &options)
     : Node("motor", options) {
   InitParams();
@@ -95,16 +116,6 @@ void MotorNode::InitTimers() {
 
 void MotorNode::InitServices() {
   std::string name;
-  using GetFloat = gantry_msgs::srv::GetFloatDrive;
-  using SetFloat = gantry_msgs::srv::SetFloatDrive;
-  using gantry_msgs::srv::SetHomePosition;
-  using std_srvs::srv::SetBool;
-  using std_srvs::srv::Trigger;
-  using GetFloatRequest = const GetFloat::Request::SharedPtr;
-  using GetFloatResponse = GetFloat::Response::SharedPtr;
-  using SetFloatRequest = const SetFloat::Request::SharedPtr;
-  using SetFloatResponse = SetFloat::Response::SharedPtr;
-
   name = "~/start_homing";
   services_.start_homing = create_service<Trigger>(
       name, [this](const Trigger::Request::SharedPtr request,
@@ -121,14 +132,20 @@ void MotorNode::InitServices() {
 
   name = "~/enable";
   services_.enable = create_service<SetBool>(
-      name,
-      [this](const SetBool::Request::SharedPtr req,
-             SetBool::Response::SharedPtr resp) { ServeEnable(req, resp); });
+      name, [this](SetBoolRequest req, SetBoolResponse resp) {
+        ServeEnable(req, resp);
+      });
 
   name = "~/get_max_speed";
   services_.get_max_speed = create_service<GetFloat>(
       name, [this](GetFloatRequest req, GetFloatResponse resp) {
         ServeGetMaxSpeed(req, resp);
+      });
+
+  name = "~/reset_max_speed";
+  services_.reset_max_speed = create_service<Trigger>(
+      name, [this](TriggerRequest req, TriggerResponse resp) {
+        ServeResetMaxSpeed(req, resp);
       });
 
   name = "~/set_max_speed";
@@ -141,6 +158,12 @@ void MotorNode::InitServices() {
   services_.get_max_accel = create_service<GetFloat>(
       name, [this](GetFloatRequest req, GetFloatResponse resp) {
         ServeGetMaxAccel(req, resp);
+      });
+
+  name = "~/reset_max_accel";
+  services_.reset_max_speed = create_service<Trigger>(
+      name, [this](TriggerRequest req, TriggerResponse resp) {
+        ServeResetMaxAccel(req, resp);
       });
 
   name = "~/set_max_accel";
@@ -169,9 +192,7 @@ void MotorNode::InitServices() {
       });
 }
 
-void MotorNode::ServeStartHoming(
-    const std_srvs::srv::Trigger_Request::SharedPtr,
-    std_srvs::srv::Trigger_Response::SharedPtr _response) {
+void MotorNode::ServeStartHoming(TriggerRequest, TriggerResponse _response) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (!MotorOkayForService(_response)) {
     return;
@@ -180,9 +201,8 @@ void MotorNode::ServeStartHoming(
   _response->message = "Homing sequence started.";
 }
 
-void MotorNode::ServeSetHomePosition(
-    const gantry_msgs::srv::SetHomePosition::Request::SharedPtr _request,
-    gantry_msgs::srv::SetHomePosition::Response::SharedPtr _response) {
+void MotorNode::ServeSetHomePosition(SetHomePositionRequest _request,
+                                     SetHomePositionResponse _response) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (!MotorOkayForService(_response)) {
     return;
@@ -198,9 +218,8 @@ void MotorNode::ServeSetHomePosition(
   _response->success = motor_->SetHome(increments);
 }
 
-void MotorNode::ServeEnable(
-    const std_srvs::srv::SetBool::Request::SharedPtr _request,
-    std_srvs::srv::SetBool::Response::SharedPtr _response) {
+void MotorNode::ServeEnable(SetBoolRequest _request,
+                            SetBoolResponse _response) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (!MotorOkayForService(_response)) {
     return;
@@ -212,9 +231,7 @@ void MotorNode::ServeEnable(
   }
 }
 
-void MotorNode::ServeGetMaxSpeed(
-    const gantry_msgs::srv::GetFloatDrive::Request::SharedPtr,
-    gantry_msgs::srv::GetFloatDrive::Response::SharedPtr _response) {
+void MotorNode::ServeGetMaxSpeed(GetFloatRequest, GetFloatResponse _response) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (!MotorOkayForService(_response)) {
     return;
@@ -229,9 +246,25 @@ void MotorNode::ServeGetMaxSpeed(
   _response->driveside_value = RPM2Speed(*v);
 }
 
-void MotorNode::ServeGetMaxAccel(
-    const gantry_msgs::srv::GetFloatDrive::Request::SharedPtr,
-    gantry_msgs::srv::GetFloatDrive::Response::SharedPtr _response) {
+void MotorNode::ServeResetMaxSpeed(TriggerRequest, TriggerResponse _response) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (!MotorOkayForService(_response)) {
+    return;
+  }
+  _response->success = motor_->SetVelocityLimit(params_.defaults.max_rpm);
+}
+
+void MotorNode::ServeResetMaxAccel(TriggerRequest, TriggerResponse _response) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (!MotorOkayForService(_response)) {
+    return;
+  }
+  _response->success =
+      motor_->SetAccelerationLimit(params_.defaults.max_accel) &&
+      motor_->SetDecelerationLimit(params_.defaults.max_accel);
+}
+
+void MotorNode::ServeGetMaxAccel(GetFloatRequest, GetFloatResponse _response) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (!MotorOkayForService(_response)) {
     return;
@@ -246,9 +279,7 @@ void MotorNode::ServeGetMaxAccel(
   _response->driveside_value = RevsPerSquareSecond2Accel(*v);
 }
 
-void MotorNode::ServeGetMaxDecel(
-    const gantry_msgs::srv::GetFloatDrive::Request::SharedPtr,
-    gantry_msgs::srv::GetFloatDrive::Response::SharedPtr _response) {
+void MotorNode::ServeGetMaxDecel(GetFloatRequest, GetFloatResponse _response) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (!MotorOkayForService(_response)) {
     return;
@@ -263,9 +294,8 @@ void MotorNode::ServeGetMaxDecel(
   _response->driveside_value = RevsPerSquareSecond2Accel(*v);
 }
 
-void MotorNode::ServeGetPhysicalRPMLimit(
-    const gantry_msgs::srv::GetFloatDrive::Request::SharedPtr,
-    gantry_msgs::srv::GetFloatDrive::Response::SharedPtr _response) {
+void MotorNode::ServeGetPhysicalRPMLimit(GetFloatRequest,
+                                         GetFloatResponse _response) {
   _response->success = true;
   _response->motorside_value = params_.max_rpm;
   _response->driveside_value = RPM2Speed(params_.max_rpm);
@@ -287,9 +317,8 @@ void MotorNode::ServeSetMaxSpeed(
   _response->success = motor_->SetVelocityLimit(v);
 }
 
-void MotorNode::ServeSetMaxAccel(
-    const gantry_msgs::srv::SetFloatDrive::Request::SharedPtr _request,
-    gantry_msgs::srv::SetFloatDrive::Response::SharedPtr _response) {
+void MotorNode::ServeSetMaxAccel(SetFloatRequest _request,
+                                 SetFloatResponse _response) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (!MotorOkayForService(_response)) {
     return;
@@ -304,9 +333,8 @@ void MotorNode::ServeSetMaxAccel(
       motor_->SetAccelerationLimit(v) && motor_->SetDecelerationLimit(v);
 }
 
-void MotorNode::ServeSetMaxDecel(
-    const gantry_msgs::srv::SetFloatDrive::Request::SharedPtr _request,
-    gantry_msgs::srv::SetFloatDrive::Response::SharedPtr _response) {
+void MotorNode::ServeSetMaxDecel(SetFloatRequest _request,
+                                 SetFloatResponse _response) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (!MotorOkayForService(_response)) {
     return;

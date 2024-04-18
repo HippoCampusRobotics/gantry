@@ -132,12 +132,18 @@ class MotorNode : public rclcpp::Node {
   void ServeGetMaxAccel(
       const gantry_msgs::srv::GetFloatDrive::Request::SharedPtr,
       gantry_msgs::srv::GetFloatDrive::Response::SharedPtr);
+  void ServeResetMaxAccel(
+      [[maybe_unused]] const std_srvs::srv::Trigger_Request::SharedPtr,
+      std_srvs::srv::Trigger_Response::SharedPtr);
   void ServeGetMaxDecel(
       const gantry_msgs::srv::GetFloatDrive::Request::SharedPtr,
       gantry_msgs::srv::GetFloatDrive::Response::SharedPtr);
   void ServeGetMaxSpeed(
       const gantry_msgs::srv::GetFloatDrive::Request::SharedPtr,
       gantry_msgs::srv::GetFloatDrive::Response::SharedPtr);
+  void ServeResetMaxSpeed(
+      [[maybe_unused]] const std_srvs::srv::Trigger_Request::SharedPtr,
+      std_srvs::srv::Trigger_Response::SharedPtr);
   void ServeGetPhysicalRPMLimit(
       const gantry_msgs::srv::GetFloatDrive::Request::SharedPtr,
       gantry_msgs::srv::GetFloatDrive::Response::SharedPtr);
@@ -175,8 +181,10 @@ class MotorNode : public rclcpp::Node {
     rclcpp::Service<gantry_msgs::srv::SetHomePosition>::SharedPtr
         set_home_position;
     rclcpp::Service<gantry_msgs::srv::GetFloatDrive>::SharedPtr get_max_speed;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_max_speed;
     rclcpp::Service<gantry_msgs::srv::SetFloatDrive>::SharedPtr set_max_speed;
     rclcpp::Service<gantry_msgs::srv::GetFloatDrive>::SharedPtr get_max_accel;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_max_accel;
     rclcpp::Service<gantry_msgs::srv::SetFloatDrive>::SharedPtr set_max_accel;
     rclcpp::Service<gantry_msgs::srv::GetFloatDrive>::SharedPtr get_max_decel;
     rclcpp::Service<gantry_msgs::srv::SetFloatDrive>::SharedPtr set_max_decel;
