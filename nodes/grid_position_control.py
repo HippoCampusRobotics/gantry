@@ -22,7 +22,7 @@ class GridPositionControl(Node):
         super().__init__(node_name=node_name)
         self.initialized = False
 
-        self.waypoint_grid = self.load_waypoints()
+        self.waypoint_list = self.load_waypoints()
 
         self.axes = ('x', 'y', 'z')
 
@@ -32,13 +32,18 @@ class GridPositionControl(Node):
         self.all_positions_reached = False
         self.last_time_position_reached = self.get_clock().now()
 
-        self.publishing_next_setpoint = False
+        self.updated_waypoint_index = False
         self.current_waypoint_index = 0
 
         self.motor_positions = [0.0, 0.0, 0.0]
         self.positions_timed_out = [False, False, False]
 
-        self.wait_time_measurement = 0.0
+        descriptor = ParameterDescriptor(type=ParameterType.PARAMETER_DOUBLE)
+        self.declare_parameter('measurement_time', descriptor=descriptor)
+        self.wait_time_measurement = self.get_parameter(
+            'measurement_time').value
+        self.get_logger().info(
+            f'Using measurement time of {self.wait_time_measurement}s.')
 
         # services
         self.start_srv = self.create_service(Trigger, '~/start',
@@ -76,7 +81,7 @@ class GridPositionControl(Node):
 
             topic_name = 'motor_' + self.axes[i] + '/motor_status'
             sub = self.create_subscription(
-                MotorVelocity,
+                MotorStatus,
                 topic_name,
                 lambda msg, index=i: self.on_motor_status(msg, index),
                 qos)
@@ -103,11 +108,13 @@ class GridPositionControl(Node):
         with open(filepath, 'r') as f:
             data = yaml.safe_load(f)
 
-        return data['waypoints']
+        waypoint_list = []
+        for wp in data['waypoints']:
+            waypoint_list.append([wp.get('x'), wp.get('y'), wp.get('z')])
+        return waypoint_list
 
     def on_motor_position(self, msg: MotorPosition, index: int):
         if not self.initialized:
-            self.get_logger().info(f'Not initialized yet.')
             return
 
         self.motor_positions[index] = msg.position
@@ -122,36 +129,52 @@ class GridPositionControl(Node):
 
     def on_motor_status(self, msg: MotorStatus, index: int):
         if not self.initialized:
-            self.get_logger().info(f'Not initialized yet.')
             return
 
         self.position_reached[index] = msg.position_reached
 
         if all(self.position_reached):
-            self.publishing_next_setpoint = False
-
             if not self.all_positions_reached:
                 # first time all motors reached position
+                self.get_logger().info(
+                    f'First time all motors reached waypoint!')
                 self.all_positions_reached = True
                 self.last_time_position_reached = self.get_clock().now()
                 return
             else:
                 # not the first time
                 now = self.get_clock().now()
-                dt = (self.last_time_position_reached - now).nanoseconds * 1e-9
+                dt = (now - self.last_time_position_reached).nanoseconds * 1e-9
                 if dt < (0.05 + self.wait_time_measurement):
                     # still wait some more time before moving to next waypoint
                     if 0.05 < dt < self.wait_time_measurement:
                         self.is_meas_time = True
+                        self.get_logger().info(
+                            f'Now measuring at waypoint' +
+                            f' {self.current_waypoint_index} of {len(self.waypoint_list)}',
+                            throttle_duration_sec=self.wait_time_measurement)
                     return
                 else:
-                    # let's start sending the next waypoint
+                    # time's up!
                     self.is_meas_time = False
-                    self.current_waypoint_index += self.current_waypoint_index
+                    if not self.updated_waypoint_index:
+                        # let's start sending the next waypoint
+                        self.get_logger().info(
+                            f'Finished at waypoint ' +
+                            f'{self.waypoint_list[self.current_waypoint_index]}'
+                            + f' with index {self.current_waypoint_index}')
+                        self.current_waypoint_index += 1
+                        self.updated_waypoint_index = True
+                        self.get_logger().info(
+                            f'Moving on to waypoint ' +
+                            f'{self.waypoint_list[self.current_waypoint_index]}'
+                            + f' with index {self.current_waypoint_index}')
 
         else:  # not all motor positions reached
+            # reset status
             self.all_positions_reached = False
             self.is_meas_time = False
+            self.updated_waypoint_index = False
 
     def on_control_timer(self):
         if not self.initialized:
@@ -164,12 +187,18 @@ class GridPositionControl(Node):
             return
         if not self.running:
             self.publish_velocity_setpoint([0.0, 0.0, 0.0])
+            return
+
         # TODO check if waypoints valid?
-        # self.get_logger().info(f'{self.waypoint_grid[85]}')
+        self.publish_position_setpoint(
+            self.waypoint_list[self.current_waypoint_index])
+        # self.get_logger().info(
+        #     f'Currently publishing the following setpoint: ' +
+        #     f'{self.waypoint_list[self.current_waypoint_index]}',
+        #     throttle_duration_sec=2)
 
     def on_timeout_timer(self, index: int):
         if not self.initialized:
-            self.get_logger().info(f'Not initialized yet.')
             return
 
         if not self.positions_timed_out[index]:
@@ -242,9 +271,6 @@ class GridPositionControl(Node):
         response.message = message
         response.success = success
         self.get_logger().info(message)
-
-    def serve_move_to_start(self, request, response):
-        pass
 
 
 def main():

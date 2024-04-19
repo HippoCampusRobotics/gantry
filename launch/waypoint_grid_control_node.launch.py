@@ -12,10 +12,14 @@ def declare_launch_args(launch_description: LaunchDescription):
     action = DeclareLaunchArgument('waypoint_file', default_value=path)
     launch_description.add_action(action)
 
+    action = DeclareLaunchArgument('measurement_time', default_value='3.0')
+    launch_description.add_action(action)
+
 
 def create_grid_position_node():
     args = LaunchArgsDict()
     args.add('waypoint_file')
+    args.add('measurement_time')
     return Node(
         executable='grid_position_control.py',
         package='gantry',
