@@ -10,13 +10,10 @@ from std_srvs.srv import Trigger
 
 import yaml
 
-qos = QoSProfile(reliability=QoSReliabilityPolicy.BEST_EFFORT,
-                 history=QoSHistoryPolicy.KEEP_LAST,
-                 depth=1)
-
-
-# TODO: - waypoint grid als list/...?
-#       - 
+# qos = QoSProfile(reliability=QoSReliabilityPolicy.BEST_EFFORT,
+#                  history=QoSHistoryPolicy.KEEP_LAST,
+#                  depth=1)
+qos = 1
 
 
 class GridPositionControl(Node):
@@ -48,47 +45,52 @@ class GridPositionControl(Node):
                                              self.serve_start)
         self.stop_srv = self.create_service(Trigger, '~/stop', self.serve_stop)
 
-        # publishers
+        self.is_meas_time = False
+
         self.motor_position_setpoint_pubs = []
         self.motor_velocity_setpoint_pubs = []
-        self.is_meas_time = False
+        self.motor_position_subs = []
+        self.motor_status_subs = []
         self.meas_time_pub = self.create_publisher(BoolStamped,
                                                    'measurement_active', qos)
-
-        # subscribers
-        self.motor_position_subs = []
-        self.motor_velocity_subs = []
-        self.motor_status_subs = []
-
         # init subscribers + publishers
         for i in range(len(self.axes)):
+            self.get_logger().info(
+                f'For loop in initialization of subs/pubs: index = {i}')
+
             topic_name = 'motor_' + self.axes[i] + '/setpoint/absolute_position'
-            pub1 = self.create_publisher(MotorPosition, topic_name, qos)
-            self.motor_position_setpoint_pubs.append(pub1)
+            pub = self.create_publisher(MotorPosition, topic_name, qos)
+            self.motor_position_setpoint_pubs.append(pub)
 
             topic_name = 'motor_' + self.axes[i] + '/setpoint/velocity'
-            pub2 = self.create_publisher(MotorVelocity, topic_name, qos)
-            self.motor_velocity_setpoint_pubs.append(pub2)
+            pub = self.create_publisher(MotorVelocity, topic_name, qos)
+            self.motor_velocity_setpoint_pubs.append(pub)
 
             topic_name = 'motor_' + self.axes[i] + '/position'
-            sub1 = self.create_subscription(
-                MotorPosition, topic_name,
-                lambda msg: self.on_motor_position(i, msg), qos)
-            self.motor_position_subs.append(sub1)
+            sub = self.create_subscription(
+                MotorPosition,
+                topic_name,
+                lambda msg, index=i: self.on_motor_position(msg, index),
+                qos)
+            self.motor_position_subs.append(sub)
 
             topic_name = 'motor_' + self.axes[i] + '/motor_status'
-            sub2 = self.create_subscription(
-                MotorVelocity, topic_name,
-                lambda msg: self.on_motor_status(i, msg), qos)
-            self.motor_velocity_subs.append(sub2)
+            sub = self.create_subscription(
+                MotorVelocity,
+                topic_name,
+                lambda msg, index=i: self.on_motor_status(msg, index),
+                qos)
+            self.motor_status_subs.append(sub)
 
         # timers
         self.control_timer = self.create_timer(timer_period_sec=(1 / 50),
                                                callback=self.on_control_timer)
 
-        self.timeout_timer_x = self.create_timer((1 / 2), self.on_timeout_x)
-        self.timeout_timer_y = self.create_timer((1 / 2), self.on_timeout_y)
-        self.timeout_timer_z = self.create_timer((1 / 2), self.on_timeout_z)
+        self.timeout_timers = []
+        for i in range(len(self.axes)):
+            timer = self.create_timer(
+                (1 / 2), lambda index=i: self.on_timeout_timer(index))
+            self.timeout_timers.append(timer)
 
         self.get_logger().info(f'Initialization finished.')
         self.initialized = True
@@ -103,7 +105,7 @@ class GridPositionControl(Node):
 
         return data['waypoints']
 
-    def on_motor_position(self, index: int, msg: MotorPosition):
+    def on_motor_position(self, msg: MotorPosition, index: int):
         if not self.initialized:
             self.get_logger().info(f'Not initialized yet.')
             return
@@ -116,15 +118,9 @@ class GridPositionControl(Node):
                 f'{self.axes[index]}-axis. Not timed out anymore.')
 
         self.positions_timed_out[index] = False
+        self.timeout_timers[index].reset()
 
-        if index == 0:
-            self.timeout_timer_x.reset()
-        elif index == 1:
-            self.timeout_timer_y.reset()
-        elif index == 2:
-            self.timeout_timer_z.reset()
-
-    def on_motor_status(self, index: int, msg: MotorStatus):
+    def on_motor_status(self, msg: MotorStatus, index: int):
         if not self.initialized:
             self.get_logger().info(f'Not initialized yet.')
             return
@@ -169,14 +165,12 @@ class GridPositionControl(Node):
         if not self.running:
             self.publish_velocity_setpoint([0.0, 0.0, 0.0])
         # TODO check if waypoints valid?
-        self.get_logger().info(f'{self.waypoint_grid[85]}')
+        # self.get_logger().info(f'{self.waypoint_grid[85]}')
 
     def on_timeout_timer(self, index: int):
         if not self.initialized:
             self.get_logger().info(f'Not initialized yet.')
             return
-        self.get_logger().info(
-            f'Timer for index {index} / axis {self.axes[index]} called!')
 
         if not self.positions_timed_out[index]:
             self.get_logger().warning(
@@ -184,40 +178,7 @@ class GridPositionControl(Node):
                 'Waiting for new data.')
 
         self.positions_timed_out[index] = True
-
-        if index == 0:
-            self.timeout_timer_x.cancel()
-        elif index == 1:
-            self.timeout_timer_y.cancel()
-        elif index == 2:
-            self.timeout_timer_z.cancel()
-
-    def on_timeout_x(self):
-        if not self.positions_timed_out[0]:
-            self.get_logger().warning(
-                f'Motor position for {self.axes[0]}-axis timed out. ' +
-                'Waiting for new data.')
-
-        self.positions_timed_out[0] = True
-        self.timeout_timer_x.cancel()
-
-    def on_timeout_y(self):
-        if not self.positions_timed_out[1]:
-            self.get_logger().warning(
-                f'Motor position for {self.axes[1]}-axis timed out. ' +
-                'Waiting for new data.')
-
-        self.positions_timed_out[1] = True
-        self.timeout_timer_y.cancel()
-
-    def on_timeout_z(self):
-        if not self.positions_timed_out[2]:
-            self.get_logger().warning(
-                f'Motor position for {self.axes[2]}-axis timed out. ' +
-                'Waiting for new data.')
-
-        self.positions_timed_out[2] = True
-        self.timeout_timer_z.cancel()
+        self.timeout_timers[index].cancel()
 
     def is_motor_position_timed_out(self):
         return any(self.positions_timed_out)
