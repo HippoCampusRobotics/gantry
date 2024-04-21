@@ -9,6 +9,8 @@ from hippo_msgs.msg import BoolStamped
 from std_srvs.srv import Trigger
 
 import yaml
+import numpy as np
+import datetime
 
 # qos = QoSProfile(reliability=QoSReliabilityPolicy.BEST_EFFORT,
 #                  history=QoSHistoryPolicy.KEEP_LAST,
@@ -25,6 +27,7 @@ class GridPositionControl(Node):
         self.waypoint_list = self.load_waypoints()
 
         self.axes = ('x', 'y', 'z')
+        self.max_speeds = [0.1, 0.1, 0.1]
 
         self.running = False
 
@@ -44,6 +47,7 @@ class GridPositionControl(Node):
             'measurement_time').value
         self.get_logger().info(
             f'Using measurement time of {self.wait_time_measurement}s.')
+        self.delay_before_measurement = 0.05  # s
 
         # services
         self.start_srv = self.create_service(Trigger, '~/start',
@@ -60,9 +64,6 @@ class GridPositionControl(Node):
                                                    'measurement_active', qos)
         # init subscribers + publishers
         for i in range(len(self.axes)):
-            self.get_logger().info(
-                f'For loop in initialization of subs/pubs: index = {i}')
-
             topic_name = 'motor_' + self.axes[i] + '/setpoint/absolute_position'
             pub = self.create_publisher(MotorPosition, topic_name, qos)
             self.motor_position_setpoint_pubs.append(pub)
@@ -96,6 +97,11 @@ class GridPositionControl(Node):
             timer = self.create_timer(
                 (1 / 2), lambda index=i: self.on_timeout_timer(index))
             self.timeout_timers.append(timer)
+
+        self.estimated_total_time = self.get_estimated_time_to_end(0)
+        self.get_logger().info(
+            f'Total estimated time: {round(self.estimated_total_time / 60.0)} min '
+        )
 
         self.get_logger().info(f'Initialization finished.')
         self.initialized = True
@@ -145,13 +151,21 @@ class GridPositionControl(Node):
                 # not the first time
                 now = self.get_clock().now()
                 dt = (now - self.last_time_position_reached).nanoseconds * 1e-9
-                if dt < (0.05 + self.wait_time_measurement):
+                if dt < (self.delay_before_measurement +
+                         self.wait_time_measurement):
                     # still wait some more time before moving to next waypoint
-                    if 0.05 < dt < self.wait_time_measurement:
+                    if self.delay_before_measurement < dt < (
+                            self.delay_before_measurement +
+                            self.wait_time_measurement):
                         self.is_meas_time = True
                         self.get_logger().info(
                             f'Now measuring at waypoint' +
                             f' {self.current_waypoint_index} of {len(self.waypoint_list)}',
+                            throttle_duration_sec=self.wait_time_measurement)
+                        remaining_time = self.get_estimated_time_to_end(
+                            self.current_waypoint_index)
+                        self.get_logger().info(
+                            f'Total estimated remaining time: {round(remaining_time / 60.0)} min',
                             throttle_duration_sec=self.wait_time_measurement)
                     return
                 else:
@@ -211,6 +225,21 @@ class GridPositionControl(Node):
 
     def is_motor_position_timed_out(self):
         return any(self.positions_timed_out)
+
+    def get_estimated_time_to_end(self, waypoint_index: int) -> float:
+        num_waypoints = len(self.waypoint_list) - waypoint_index
+        remaining_time = (self.wait_time_measurement +
+                          self.delay_before_measurement) * num_waypoints
+        for wp in range(waypoint_index, len(self.waypoint_list) - 1):
+            max_time = [None] * len(self.axes)
+            for i in range(len(self.axes)):
+                distance_i = self.waypoint_list[
+                    wp + 1][i] - self.waypoint_list[wp][i]
+                max_time[i] = distance_i / self.max_speeds[i]
+            remaining_time += max(
+                max_time
+            ) + 0.5  # some extra to account for axis to start moving
+        return remaining_time
 
     def publish_position_setpoint(self, setpoint: list[float]):
         msg = MotorPosition()
