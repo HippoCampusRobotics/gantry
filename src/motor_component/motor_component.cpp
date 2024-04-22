@@ -387,6 +387,7 @@ void MotorNode::OnVelocitySetpoint(
 void MotorNode::Run() {
   static bool velocity_timed_out = false;
   std::lock_guard<std::mutex> lock(mutex_);
+  motor_->ClearBuffers();
   if (!UpdateMotorData()) {
     ++transmission_errors_;
   }
@@ -476,6 +477,7 @@ bool MotorNode::UpdateMotorData() {
   //}
   PublishVelocity(velocity, now());
 
+  motor_->ClearBuffers();
   auto status = motor_->UpdateStatus();
   if (!status) {
     RCLCPP_ERROR(get_logger(), "Could not update motor status.");

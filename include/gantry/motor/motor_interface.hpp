@@ -55,6 +55,7 @@ class Motor {
   Motor();
 
   bool InitSerial(std::string _device_name);
+  void ClearBuffers() { tcflush(port_, TCIOFLUSH); }
   bool SendCommand(const std::string &command);
 
   inline bool SendCommand(const std::string &command, int arg) {
