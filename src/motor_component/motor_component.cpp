@@ -161,7 +161,7 @@ void MotorNode::InitServices() {
       });
 
   name = "~/reset_max_accel";
-  services_.reset_max_speed = create_service<Trigger>(
+  services_.reset_max_accel = create_service<Trigger>(
       name, [this](TriggerRequest req, TriggerResponse resp) {
         ServeResetMaxAccel(req, resp);
       });
