@@ -12,10 +12,9 @@ import yaml
 import numpy as np
 import datetime
 
-# qos = QoSProfile(reliability=QoSReliabilityPolicy.BEST_EFFORT,
-#                  history=QoSHistoryPolicy.KEEP_LAST,
-#                  depth=1)
-# qos = 1
+qos = QoSProfile(reliability=QoSReliabilityPolicy.BEST_EFFORT,
+                 history=QoSHistoryPolicy.KEEP_LAST,
+                 depth=1)
 
 
 class GridPositionControl(Node):
@@ -179,10 +178,18 @@ class GridPositionControl(Node):
                             + f' with index {self.current_waypoint_index}')
                         self.current_waypoint_index += 1
                         self.updated_waypoint_index = True
-                        self.get_logger().info(
-                            f'Moving on to waypoint ' +
-                            f'{self.waypoint_list[self.current_waypoint_index]}'
-                            + f' with index {self.current_waypoint_index}')
+
+                        # check that we still have more waypoints to go to
+                        if self.current_waypoint_index < len(
+                                self.waypoint_list):
+                            self.get_logger().info(
+                                f'Moving on to waypoint ' +
+                                f'{self.waypoint_list[self.current_waypoint_index]}'
+                                + f' with index {self.current_waypoint_index}')
+                        else:
+                            self.get_logger().info(
+                                f'Finished all waypoints. Stopping...')
+                            self.stop()
 
         else:  # not all motor positions reached
             # reset status
@@ -287,6 +294,13 @@ class GridPositionControl(Node):
         return response
 
     def serve_stop(self, request, response):
+        message, success = self.stop()
+        response.message = message
+        response.success = success
+        self.get_logger().info(message)
+        return response
+
+    def stop(self):
         if self.running:
             self.running = False
             success = True
@@ -297,10 +311,7 @@ class GridPositionControl(Node):
         # while zero velocity should be published elsewhere now,
         # it does not hurt to publish it here, too:
         self.publish_velocity_setpoint([0.0, 0.0, 0.0])
-        response.message = message
-        response.success = success
-        self.get_logger().info(message)
-        return response
+        return message, success
 
 
 def main():
