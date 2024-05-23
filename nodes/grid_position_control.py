@@ -311,6 +311,11 @@ class GridPositionControl(Node):
         # while zero velocity should be published elsewhere now,
         # it does not hurt to publish it here, too:
         self.publish_velocity_setpoint([0.0, 0.0, 0.0])
+
+        # reset waypoint index
+        self.current_waypoint_index = 0
+        self.get_logger().info(
+            f'Resetting waypoint index. Call start service to start again.')
         return message, success
 
 
