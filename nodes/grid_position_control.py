@@ -159,7 +159,7 @@ class GridPositionControl(Node):
                         self.is_meas_time = True
                         self.get_logger().info(
                             f'Now measuring at waypoint' +
-                            f' {self.current_waypoint_index} of {len(self.waypoint_list)}',
+                            f' {self.current_waypoint_index + 1} of {len(self.waypoint_list)}',
                             throttle_duration_sec=self.wait_time_measurement)
                         remaining_time = self.get_estimated_time_to_end(
                             self.current_waypoint_index)
