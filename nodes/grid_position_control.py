@@ -15,7 +15,7 @@ import datetime
 # qos = QoSProfile(reliability=QoSReliabilityPolicy.BEST_EFFORT,
 #                  history=QoSHistoryPolicy.KEEP_LAST,
 #                  depth=1)
-qos = 1
+# qos = 1
 
 
 class GridPositionControl(Node):
@@ -47,7 +47,7 @@ class GridPositionControl(Node):
             'measurement_time').value
         self.get_logger().info(
             f'Using measurement time of {self.wait_time_measurement}s.')
-        self.delay_before_measurement = 0.05  # s
+        self.delay_before_measurement = 0.5  # s
 
         # services
         self.start_srv = self.create_service(Trigger, '~/start',
@@ -61,15 +61,15 @@ class GridPositionControl(Node):
         self.motor_position_subs = []
         self.motor_status_subs = []
         self.meas_time_pub = self.create_publisher(BoolStamped,
-                                                   'measurement_active', qos)
+                                                   'measurement_active', 1)
         # init subscribers + publishers
         for i in range(len(self.axes)):
             topic_name = 'motor_' + self.axes[i] + '/setpoint/absolute_position'
-            pub = self.create_publisher(MotorPosition, topic_name, qos)
+            pub = self.create_publisher(MotorPosition, topic_name, 1)
             self.motor_position_setpoint_pubs.append(pub)
 
             topic_name = 'motor_' + self.axes[i] + '/setpoint/velocity'
-            pub = self.create_publisher(MotorVelocity, topic_name, qos)
+            pub = self.create_publisher(MotorVelocity, topic_name, 1)
             self.motor_velocity_setpoint_pubs.append(pub)
 
             topic_name = 'motor_' + self.axes[i] + '/position'
@@ -300,6 +300,7 @@ class GridPositionControl(Node):
         response.message = message
         response.success = success
         self.get_logger().info(message)
+        return response
 
 
 def main():
