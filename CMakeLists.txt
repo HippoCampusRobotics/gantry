@@ -74,6 +74,12 @@ add_library(motor_component SHARED
   src/motor_component/motor_component_params.cpp
 )
 target_link_libraries(motor_component gantry_motor)
+target_include_directories(motor_component
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
 ament_target_dependencies(motor_component
   rclcpp
   rclcpp_components
@@ -81,10 +87,14 @@ ament_target_dependencies(motor_component
   gantry_msgs
   std_srvs
 )
-rclcpp_components_register_nodes(motor_component PLUGIN "gantry::MotorNode")
+rclcpp_components_register_node(
+  motor_component
+  PLUGIN "gantry::MotorNode"
+  EXECUTABLE motor_node
+)
 install(
   TARGETS motor_component
-  EXPORT export_${PROJECT_NAME}
+  EXPORT export_motor_component
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
