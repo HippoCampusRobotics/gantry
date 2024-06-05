@@ -1,9 +1,9 @@
 from ament_index_python import get_package_share_path
+from hippo_common.launch_helper import LaunchArgsDict
 from launch_ros.actions import Node
+
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
-from hippo_common.launch_helper import LaunchArgsDict
 
 
 def declare_launch_args(launch_description: LaunchDescription):

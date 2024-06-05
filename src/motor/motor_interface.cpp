@@ -26,7 +26,7 @@
 
 namespace gantry {
 
-Motor::Motor(){};
+Motor::Motor() {};
 
 bool Motor::InitSerial(std::string _device_name) {
   initialized_ = false;
