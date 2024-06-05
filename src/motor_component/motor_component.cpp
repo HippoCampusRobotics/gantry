@@ -78,7 +78,7 @@ void MotorNode::InitPublishers() {
 
   topic = "~/transmission_errors";
   transmission_errors_pub_ =
-      create_publisher<hippo_msgs::msg::Float64Stamped>(topic, qos);
+      create_publisher<gantry_msgs::msg::TransmissionErrors>(topic, qos);
 
   topic = "~/motor_status";
   motor_status_pub_ =
@@ -548,9 +548,9 @@ void MotorNode::PublishLimitSwitches(bool lower, bool upper,
 
 void MotorNode::PublishTransmissionErrors(int _errors,
                                           const rclcpp::Time &_now) {
-  hippo_msgs::msg::Float64Stamped msg;
+  gantry_msgs::msg::TransmissionErrors msg;
   msg.header.stamp = _now;
-  msg.data = _errors;
+  msg.transmission_errors = _errors;
   if (!transmission_errors_pub_) {
     RCLCPP_ERROR(
         get_logger(),

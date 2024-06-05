@@ -20,10 +20,10 @@
 #include <gantry_msgs/msg/motor_position.hpp>
 #include <gantry_msgs/msg/motor_status.hpp>
 #include <gantry_msgs/msg/motor_velocity.hpp>
+#include <gantry_msgs/msg/transmission_errors.hpp>
 #include <gantry_msgs/srv/get_float_drive.hpp>
 #include <gantry_msgs/srv/set_float_drive.hpp>
 #include <gantry_msgs/srv/set_home_position.hpp>
-#include <hippo_msgs/msg/float64_stamped.hpp>
 #include <mutex>
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/set_bool.hpp>
@@ -164,7 +164,7 @@ class MotorNode : public rclcpp::Node {
   rclcpp::Publisher<gantry_msgs::msg::MotorVelocity>::SharedPtr velocity_pub_;
   rclcpp::Publisher<gantry_msgs::msg::MotorLimitSwitches>::SharedPtr
       limit_switches_pub_;
-  rclcpp::Publisher<hippo_msgs::msg::Float64Stamped>::SharedPtr
+  rclcpp::Publisher<gantry_msgs::msg::TransmissionErrors>::SharedPtr
       transmission_errors_pub_;
   rclcpp::Publisher<gantry_msgs::msg::MotorStatus>::SharedPtr motor_status_pub_;
 
