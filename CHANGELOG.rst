@@ -2,8 +2,8 @@
 Changelog for package gantry
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.1 (2024-08-02)
+------------------
 * emulate tty to get colored output
 * added another missing dependency on ament_index_cpp
 * added ament_index_cpp to dependencies, since it is used
