@@ -28,6 +28,7 @@ add_compile_options(${CXX_FLAGS})
 ## is used, also find other catkin packages
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
+find_package(ament_index_cpp)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(std_srvs REQUIRED)
@@ -110,6 +111,7 @@ add_library(path_follower_component SHARED
 ament_target_dependencies(path_follower_component
   rclcpp
   rclcpp_components
+  ament_index_cpp
   hippo_common
   gantry_msgs
   path_planning
