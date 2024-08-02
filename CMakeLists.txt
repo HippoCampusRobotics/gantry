@@ -156,6 +156,7 @@ add_executable(${exec_name}
 target_link_libraries(${exec_name} motor_component)
 ament_target_dependencies(${exec_name}
   rclcpp
+  ament_index_cpp
 )
 install(TARGETS ${exec_name}
   DESTINATION lib/${PROJECT_NAME}
