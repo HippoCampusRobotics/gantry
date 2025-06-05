@@ -39,7 +39,9 @@ class GridPositionControl(Node):
         self.positions_timed_out = [False, False, False]
 
         descriptor = ParameterDescriptor(type=ParameterType.PARAMETER_DOUBLE)
-        self.declare_parameter('measurement_time', descriptor=descriptor)
+        self.declare_parameter(
+            'measurement_time', value=0.5, descriptor=descriptor
+        )
         self.wait_time_measurement = self.get_parameter(
             'measurement_time'
         ).value
@@ -114,7 +116,7 @@ class GridPositionControl(Node):
 
     def load_waypoints(self):
         descriptor = ParameterDescriptor(type=ParameterType.PARAMETER_STRING)
-        self.declare_parameter('waypoint_file', descriptor=descriptor)
+        self.declare_parameter('waypoint_file', '', descriptor=descriptor)
         filepath = self.get_parameter('waypoint_file').value
 
         with open(filepath, 'r') as f:
